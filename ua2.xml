@@ -1,0 +1,8 @@
+<config>
+    <account username = "juan@noseque.com" passwd = ""/>
+    <uaserver ip = "" puerto = "6004"/>
+    <rtpaudio puerto = "23852">
+    <regproxy ip = "128.70.70.70" puerto = "6006"/>
+    <log path = "/home/ptavi-pfinal/log_user2.txt"/>
+    <audio path = "/home/ptavi-pfinal/cancion.mp3"/>
+</config>
