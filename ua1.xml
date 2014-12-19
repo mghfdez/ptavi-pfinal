@@ -1,0 +1,8 @@
+<config>
+    <account username = "pikachu" passwd = ""/>
+    <uaserver ip = "" puerto = "6002"/>
+    <rtpaudio puerto = "23852"/>
+    <regproxy ip = "80.80.80.80" puerto = "8008"/>
+    <log path = "log_user1.txt"/>
+    <audio path = "cancion.mp3"/>
+</config>
