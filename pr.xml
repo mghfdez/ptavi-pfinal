@@ -1,0 +1,5 @@
+<config>
+    <server name = "" ip = "" puerto = "7003"/>
+    <database path = "" paswwdpath = ""/>
+    <log path = "/home/ptavi-pfinal/log_proxy.txt"/>
+</config>
