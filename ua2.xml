@@ -1,8 +1,8 @@
 <config>
-    <account username = "juan@noseque.com" passwd = ""/>
-    <uaserver ip = "" puerto = "6004"/>
-    <rtpaudio puerto = "23852">
-    <regproxy ip = "128.70.70.70" puerto = "6006"/>
-    <log path = "/home/ptavi-pfinal/log_user2.txt"/>
-    <audio path = "/home/ptavi-pfinal/cancion.mp3"/>
+    <account username = "sheldon@bigbang.net" passwd = ""/>
+    <uaserver ip = "" puerto = "6002"/>
+    <rtpaudio puerto = "23852"/>
+    <regproxy ip = "80.80.80.80" puerto = "8008"/>
+    <log path = "log_user2.txt"/>
+    <audio path = "cancion.mp3"/>
 </config>
