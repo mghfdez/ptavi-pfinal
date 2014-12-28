@@ -1,5 +1,5 @@
 <config>
-    <account username = "pikachu" passwd = ""/>
+    <account username = "leonard@bigbang.net" passwd = ""/>
     <uaserver ip = "" puerto = "6002"/>
     <rtpaudio puerto = "23852"/>
     <regproxy ip = "80.80.80.80" puerto = "8008"/>
