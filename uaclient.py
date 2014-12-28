@@ -5,6 +5,8 @@
 Programa cliente que abre un socket a un servidor
 """
 
+#Pregunta: Cuando abrimos el fichero de log, ¿machacamos contenido anterior?
+
 import socket
 import sys
 import os
@@ -81,7 +83,9 @@ def write_log(fichero, evento):
     fichero.write(linea)
 
 def formar_evento(tipo, datos, ip, puerto):
-
+    """ 
+    Forma el evento que se escribirá en el fichero de log
+    """
     accion = tipo
     if tipo == 'envio':
         accion = "Sent to " + ip + ':' + puerto + " "
@@ -90,6 +94,9 @@ def formar_evento(tipo, datos, ip, puerto):
     elif tipo == 'error':
         accion = 'Error: '
 
+    #Cambiamos los saltos de línea y lineas en blanco por espacios.
+    datos = datos.split()
+    datos = " ".join(datos)
     frase = accion + datos
     return frase
 
@@ -126,7 +133,21 @@ if __name__ == "__main__":
 
     METODO = arg_term[2]
     OPCION = arg_term[3]
-    RECEPTOR = datos_sesion['account_username']
+    USER_NAME = datos_sesion['account_username']
+    RECEPTOR = ""
+    EXPIRES = ""
+    DIR_SIP = ""
+    if METODO == 'REGISTER':
+        try:
+            EXPIRES = int(OPCION)
+            DIR_SIP = USER_NAME
+        except ValueError:
+            print usage
+            # Imprimir en fichero de log todos los errores??
+            raise SytemExit
+    else:
+        RECEPTOR = OPCION
+        DIR_SIP = RECEPTOR
     
     # Comprobamos si el método es conocido
     if METODO not in method_list:
@@ -134,28 +155,41 @@ if __name__ == "__main__":
         raise SystemExit
 
     # Dirección IP del servidor.
-    IP = datos_sesion['uaserver_ip']
+    IP_SERVER = datos_sesion['uaserver_ip']
     # Comprobamos si el puerto introducido es correcto
 
     try:
-        PORT = int(datos_sesion['uaserver_puerto'])
+        PORT_SERVER = int(datos_sesion['uaserver_puerto'])
+        
     except ValueError:
         print usage
         raise SystemExit
 
     # Contenido que vamos a enviar
-    LINE = METODO + " sip:" + RECEPTOR + "@" + IP + " " + VER + '\r\n\r\n'
+    LINE = METODO + " sip:" + DIR_SIP
+    if METODO == 'REGISTER':
+        LINE = LINE + ":" + "MY_PORT" + " " + VER + '\r\n'
+        LINE = LINE + "Expires: " + str(EXPIRES) + '\r\n\r\n'
+        # ¿como puedo saber en que puerto estoy escuchando?
+    elif METODO == 'INVITE':
+        LINE = LINE + " " + VER + "\r\n" + "Content-Type: application/sdp"
+        LINE = LINE + "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " MY_IP"
+        LINE = LINE + "\r\n" + "s=KnockKnockKnockPenny" + "\r\n" + "t=0"
+        LINE = LINE + "\r\n" + "m=audio " + "RTP_PORT" + " RTP" + "\r\n\r\n"
+    elif METODO == 'BYE':
+        LINE = LINE + " " + VER + "\r\n\r\n"
 
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    my_socket.connect((IP, PORT))
+    my_socket.connect((IP_SERVER, PORT_SERVER))
 
     # Comprobamos si hay un servidor escuchando
+    #Imprimimos trazas por el terminal y en el fichero de log
     try:
         print "Enviando: " + LINE
-        evento = formar_evento('envio', LINE, IP, str(PORT))
+        evento = formar_evento('envio', LINE, IP_SERVER, str(PORT_SERVER))
         write_log(log_fich, evento)
         my_socket.send(LINE + '\r\n')
         data = my_socket.recv(1024)
@@ -163,7 +197,8 @@ if __name__ == "__main__":
         write_log(log_fich, evento)
         print "Recibido: " + data
     except socket.error:
-        descrip = "No server listening at " + IP + " port " + str(PORT)
+        descrip = "No server listening at " + IP_SERVER
+        descrip = descrip + " port " + str(PORT_SERVER)
         evento = formar_evento('error', descrip,'','')
         write_log(log_fich, evento)
         print "Error: " + descrip
@@ -172,7 +207,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     if data.split() == lista_ack:
-        LINE2 = 'ACK sip:' + RECEPTOR + '@' + IP + " " + VER
+        LINE2 = 'ACK sip:' + USER_NAME + " " + VER
         print "Enviando: " + LINE2
         my_socket.send(LINE2 + '\r\n\r\n')
         data2 = my_socket.recv(1024)
