@@ -137,6 +137,10 @@ if __name__ == "__main__":
     RECEPTOR = ""
     EXPIRES = ""
     DIR_SIP = ""
+    MI_IP = "127.0.0.1"
+    IP_DEST = ""
+    PORT_DEST = 0
+    RTP_PORT = datos_sesion['rtpaudio_puerto']
     if METODO == 'REGISTER':
         try:
             EXPIRES = int(OPCION)
@@ -157,7 +161,6 @@ if __name__ == "__main__":
     # Dirección IP del servidor.
     IP_SERVER = datos_sesion['uaserver_ip']
     # Comprobamos si el puerto introducido es correcto
-
     try:
         PORT_SERVER = int(datos_sesion['uaserver_puerto'])
         
@@ -165,25 +168,30 @@ if __name__ == "__main__":
         print usage
         raise SystemExit
 
-    # Contenido que vamos a enviar
-    LINE = METODO + " sip:" + DIR_SIP
-    if METODO == 'REGISTER':
-        LINE = LINE + ":" + "MY_PORT" + " " + VER + '\r\n'
-        LINE = LINE + "Expires: " + str(EXPIRES) + '\r\n\r\n'
-        # ¿como puedo saber en que puerto estoy escuchando?
-    elif METODO == 'INVITE':
-        LINE = LINE + " " + VER + "\r\n" + "Content-Type: application/sdp"
-        LINE = LINE + "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " MY_IP"
-        LINE = LINE + "\r\n" + "s=KnockKnockKnockPenny" + "\r\n" + "t=0"
-        LINE = LINE + "\r\n" + "m=audio " + "RTP_PORT" + " RTP" + "\r\n\r\n"
-    elif METODO == 'BYE':
-        LINE = LINE + " " + VER + "\r\n\r\n"
+    IP_DEST = datos_sesion['regproxy_ip']
+    PORT_DEST = int(datos_sesion['regproxy_puerto'])
 
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    my_socket.connect((IP_SERVER, PORT_SERVER))
+    my_socket.connect((IP_DEST, PORT_DEST))
+    who_am_I = my_socket.getsockname()
+    mi_puerto = who_am_I[1]
+
+	 # Contenido que vamos a enviar
+    LINE = METODO + " sip:" + DIR_SIP
+    if METODO == 'REGISTER':
+        LINE = LINE + ":" + str(PORT_SERVER) + " " + VER + '\r\n'
+        LINE = LINE + "Expires: " + str(EXPIRES) + '\r\n\r\n'
+    elif METODO == 'INVITE':
+        LINE = LINE + " " + VER + "\r\n" + "Content-Type: application/sdp"
+        LINE = LINE + "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " "
+        LINE = LINE + IP_SERVER + "\r\n" + "s=KnockKnockKnockPenny"
+        LINE = LINE + "\r\n" + "t=0"
+        LINE = LINE + "\r\n" + "m=audio " + str(RTP_PORT) + " RTP" + "\r\n\r\n"
+    elif METODO == 'BYE':
+        LINE = LINE + " " + VER + "\r\n\r\n"
 
     # Comprobamos si hay un servidor escuchando
     #Imprimimos trazas por el terminal y en el fichero de log
@@ -212,6 +220,8 @@ if __name__ == "__main__":
         my_socket.send(LINE2 + '\r\n\r\n')
         data2 = my_socket.recv(1024)
         print "Recibido: " + data2
+        evento = formar_evento('recepcion', data2, '', '')
+        write_log(log_fich, evento)
     print "Terminando socket..."
 
     # Cerramos todo
