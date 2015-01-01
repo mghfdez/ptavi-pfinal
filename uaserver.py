@@ -145,6 +145,7 @@ log_fich.close()
 evento = formar_evento('Listening','...','','')
 write_log(log_path, evento)
 IP = datos_sesion['uaserver_ip']
+RTP_INFO = {}
 try:
     PORT = int(datos_sesion['uaserver_puerto'])
 except ValueError:
@@ -185,24 +186,34 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 print 'Recibida petición: ' + cadena
                 # Gestionamos la peticion dependiendo del método
                 if list_words[0] == 'INVITE':
+                    lista_cadena = cadena.split('\r\n')
+                    for dato in lista_cadena:
+                        if dato != "":
+                            lista_linea = dato.split('=')
+                            if lista_linea[0] == 'm':
+                                datos_sdp = lista_linea[1].split()
+                                if datos_sdp[0] == 'audio':
+                                    RTP_INFO['rtp_port'] = int(datos_sdp[1])
                     correo = list_words[1].split(":")[1]
                     resp = "SIP/2.0 100 Trying\r\n\r\n"
+                    #Aqui debe ir la descripcion SDP
                     resp = resp + "SIP/2.0 180 Ringing\r\n\r\n"
                     resp = resp + "SIP/2.0 200 OK\r\n\r\n"
-                    #Aqui debe ir la descripcion SDP
                     self.wfile.write(resp)
                     evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
-                    write_log(log_path, evento) 
+                    write_log(log_path, evento)
                 elif list_words[0] == 'BYE':
                     resp = "SIP/2.0 200 OK\r\n\r\n"
                     self.wfile.write(resp)
                     evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
                     write_log(log_path, evento)
                 elif list_words[0] == "ACK":
+                    audio_prt = RTP_INFO['rtp_port']
                     os.system('chmod 755 mp32rtp')
                     to_exe = './mp32rtp -i ' + ip_clnt
-                    to_exe = to_exe + ' -p 23032 < ' + AUDIO_FILE
-                    accion = "Enviando audio..."
+                    to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+                    accion = "Enviando audio a " + ip_clnt + ':'
+                    accion = accion + str(audio_prt)
                     print accion
                     os.system(to_exe)
                     evento = formar_evento(accion, "", "", "")
