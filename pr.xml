@@ -1,5 +1,6 @@
 <config>
-    <server name = "" ip = "" puerto = "7003"/>
-    <database path = "" paswwdpath = ""/>
-    <log path = "/home/ptavi-pfinal/log_proxy.txt"/>
+    <server name = "MiServidorBigBangTheory" ip = "" puerto = "8008"/>
+    <database path = "pr-db.txt" passwdpath = ""/>
+    <log path = "pr-log.txt"/>
 </config>
+
