@@ -146,7 +146,12 @@ IP = datos_sesion['server_ip']
 PORT = int(datos_sesion['server_puerto'])
 DICC_CLIENT = {}
 name_database = datos_sesion['database_path']
-
+user_dir = ""
+user_port = 0
+dir_dest = ""
+datos_dest = []
+dicc_sdp = {}
+RTP_INFO = {}
 
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
@@ -158,7 +163,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         """
         time_now = time.time()
         for user in DICC_CLIENT.keys():
-            if DICC_CLIENT[user][1] < time_now:
+            if DICC_CLIENT[user][2] < time_now:
                 print "BORRADO cliente " + user + " (Plazo expirado)"
                 del DICC_CLIENT[user]
 
@@ -171,9 +176,10 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         fich.write("User \t IP \t Expires\r\n")
         for user in DICC_CLIENT.keys():
             host = DICC_CLIENT[user][0]
-            seg = DICC_CLIENT[user][1]
+            port = DICC_CLIENT[user][1]
+            seg = DICC_CLIENT[user][2]
             str_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(seg))
-            texto = user + '\t' + host + '\t' + str_time + '\r\n'
+            texto = user + '\t' + host + '\t' + str(port) + '\t' + str_time + '\r\n'
             fich.write(texto)
         fich.close()
 
@@ -190,26 +196,50 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 if list_words[0] == 'REGISTER':
                     self.clean_dic()
                     correo = list_words[1]
-                    correo = correo.split(":")[1]
+                    user_dir = correo.split(":")[1]
                     try:
                         exp_time = int(list_words[4])
+                        user_port = int(correo.split(":")[2])
                     except ValueError:
                         self.wfile.write("SIP/2.0 400 BAD REQUEST\r\n\r\n")
                         break
                     exp_sec = exp_time + time.time()
                     dir_ip = self.client_address[0]
-                    DICC_CLIENT[correo] = [dir_ip, exp_sec]
+                    DICC_CLIENT[user_dir] = [dir_ip, user_port, exp_sec]
                     self.register2file()
-                    print "AÑADIDO cliente " + correo
+                    print "AÑADIDO cliente " + user_dir
+                    print DICC_CLIENT[user_dir]
                     print "Expira en: " + str(exp_time) + " seg.\r\n"
                     self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
                     if exp_time == 0:  # Damos de baja al cliente
-                        print "DADO DE BAJA cliente " + correo + '\n'
-                        del DICC_CLIENT[correo]
+                        print "DADO DE BAJA cliente " + user_dir + '\n'
+                        del DICC_CLIENT[user_dir]
                         self.register2file()
                         self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
+                    
                 elif list_words[0] == 'INVITE':
-                    print " "
+                    lista_cadena = cadena.split('\r\n')
+                    peticion = lista_cadena[0].split()
+                    dir_dest = peticion[1].split(":")[1]
+                    IP_DEST = DICC_CLIENT[dir_dest][0]
+                    PORT_DEST = DICC_CLIENT[dir_dest][1]
+                    for linea_pet in lista_cadena:
+                        if linea_pet != "":
+                            datos = linea_pet.split('=')
+                            if len(datos) == 2:
+                                dicc_sdp[datos[0]] = datos[1]
+
+                    datos_audio = dicc_sdp['m'].split()
+                    if datos_audio[0] == 'audio':
+                        RTP_INFO['rtp_port'] = int(datos_audio[1])
+
+                    mi_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    mi_socket.send(cadena)
+                    data = mi_socket.recv(1024)
+                    print "Recibido: " + data
+
                 elif list_words[0] == 'ACK':
                     print " "
                 elif list_words[0] == 'BYE':
