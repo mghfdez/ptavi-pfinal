@@ -192,6 +192,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         while 1:
             cadena = self.rfile.read()
             if cadena != "":
+                print "Recibido: " + cadena
                 list_words = cadena.split()
                 if list_words[0] == 'REGISTER':
                     self.clean_dic()
@@ -236,12 +237,30 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     mi_socket.connect((IP_DEST, PORT_DEST))
+                    print 'Reenviando a ' + dir_dest
                     mi_socket.send(cadena)
                     data = mi_socket.recv(1024)
                     print "Recibido: " + data
+                    print "Reenviando respuesta..."
+                    self.wfile.write(data)
 
                 elif list_words[0] == 'ACK':
-                    print " "
+                    lista_cadena = cadena.split('\r\n')
+                    peticion = lista_cadena[0].split()
+                    dir_dest = peticion[1].split(":")[1]
+                    IP_DEST = DICC_CLIENT[dir_dest][0]
+                    PORT_DEST = DICC_CLIENT[dir_dest][1]
+
+                    mi_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    print 'Reenviando a ' + dir_dest
+                    mi_socket.send(cadena)
+                    """data = mi_socket.recv(1024)
+
+                    print "Recibido: " + data
+                    
+                    self.wfile.write(data)"""
                 elif list_words[0] == 'BYE':
                     print " "       
                 else:
