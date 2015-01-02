@@ -230,10 +230,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                             if len(datos) == 2:
                                 dicc_sdp[datos[0]] = datos[1]
 
-                    datos_audio = dicc_sdp['m'].split()
-                    if datos_audio[0] == 'audio':
-                        RTP_INFO['rtp_port'] = int(datos_audio[1])
-
                     mi_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     mi_socket.connect((IP_DEST, PORT_DEST))
@@ -241,7 +237,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket.send(cadena)
                     data = mi_socket.recv(1024)
                     print "Recibido: " + data
-                    print "Reenviando respuesta..."
+                    print "Reenviando respuesta a " + str(dicc_sdp['o'])
                     self.wfile.write(data)
 
                 elif list_words[0] == 'ACK':
@@ -256,13 +252,24 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket.connect((IP_DEST, PORT_DEST))
                     print 'Reenviando a ' + dir_dest
                     mi_socket.send(cadena)
-                    """data = mi_socket.recv(1024)
 
-                    print "Recibido: " + data
-                    
-                    self.wfile.write(data)"""
                 elif list_words[0] == 'BYE':
-                    print " "       
+                    lista_cadena = cadena.split('\r\n')
+                    peticion = lista_cadena[0].split()
+                    dir_dest = peticion[1].split(":")[1]
+                    IP_DEST = DICC_CLIENT[dir_dest][0]
+                    PORT_DEST = DICC_CLIENT[dir_dest][1]
+
+                    mi_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    print 'Reenviando a ' + dir_dest
+                    mi_socket.send(cadena)
+                    data = mi_socket.recv(1024)
+                    print "Recibido: " + data
+                    print "Reenviando respuesta..."
+                    self.wfile.write(data)
+                           
                 else:
                     self.clean_dic()
                     self.wfile.write("SIP/2.0 400 BAD REQUEST\r\n\r\n")
