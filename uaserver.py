@@ -147,6 +147,7 @@ write_log(log_path, evento)
 IP = datos_sesion['uaserver_ip']
 RTP_INFO = {}
 dicc_sdp = {}
+mi_dir = datos_sesion['account_username']
 try:
     PORT = int(datos_sesion['uaserver_puerto'])
 except ValueError:
@@ -154,6 +155,7 @@ except ValueError:
     raise SystemExit
 
 AUDIO_FILE = str(datos_sesion['audio_path'])
+audio_port = datos_sesion['rtpaudio_puerto']
 
 if not os.path.exists(AUDIO_FILE):
     print usage
@@ -166,7 +168,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
     """
 
     def handle(self):
-
+        
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             cadena = self.rfile.read()
@@ -184,7 +186,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     break
                 evento = formar_evento('recepcion', cadena, ip_clnt, str(port_clnt))
                 write_log(log_path, evento) 
-                print 'Recibida petición: ' + cadena
+                print 'Recibido: ' + cadena
                 # Gestionamos la peticion dependiendo del método
                 if list_words[0] == 'INVITE':
                     lista_cadena = cadena.split('\r\n')
@@ -200,34 +202,42 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
 
                     correo = list_words[1].split(":")[1]
                     resp = "SIP/2.0 100 Trying\r\n\r\n"
-                    #Aqui debe ir la descripcion SDP
-                    resp = resp + "SIP/2.0 180 Ringing\r\n\r\n"
-                    resp = resp + "SIP/2.0 200 OK\r\n\r\n"
+                    resp += "SIP/2.0 180 Ringing\r\n\r\n"
+                    resp += "SIP/2.0 200 OK\r\n\r\n"
+                    resp += "\r\n" + "Content-Type: application/sdp"
+                    resp += "\r\n\r\n" + "v=0" + "\r\n" + "o=" + mi_dir + " "
+                    resp += IP + "\r\n" + "s=KnockKnockKnockPenny"
+                    resp += "\r\n" + "t=0" + "\r\n" + "m=audio "
+                    resp += str(audio_port) + " RTP" + "\r\n\r\n"
+                    print "Enviando respuesta (200 OK + SDP)..."
                     self.wfile.write(resp)
                     evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
                     write_log(log_path, evento)
+
                 elif list_words[0] == 'BYE':
                     resp = "SIP/2.0 200 OK\r\n\r\n"
+                    print "Enviando respuesta..."
                     self.wfile.write(resp)
                     evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
                     write_log(log_path, evento)
+
                 elif list_words[0] == "ACK":
                     audio_prt = RTP_INFO['rtp_port']
                     os.system('chmod 755 mp32rtp')
                     to_exe = './mp32rtp -i ' + ip_clnt
-                    to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+                    to_exe += ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
                     accion = "Enviando audio a " + ip_clnt + ':'
-                    accion = accion + str(audio_prt)
+                    accion += str(audio_prt)
                     print accion
                     os.system(to_exe)
                     evento = formar_evento(accion, "", "", "")
                     write_log(log_path, evento) 
+
                 else:
                     resp = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     self.wfile.write(resp)
                     evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
                     write_log(log_path, evento)
-                print 'Respuesta enviada.'
             # Si no hay más líneas salimos del bucle infinito
             else:
                 break
