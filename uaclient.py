@@ -120,8 +120,8 @@ if __name__ == "__main__":
             mi_user = SIPConfigLocal(fichero)
 
     method_list = ['REGISTER', 'INVITE', 'BYE']
-    lista_ack = ['SIP/2.0', '100', 'Trying', 'SIP/2.0', '180',
-             'Ringing', 'SIP/2.0', '200', 'OK']
+    lista_ack = ['SIP/2.0 100 Trying', 'SIP/2.0 180 Ringing',
+                 'SIP/2.0 200 OK']
     VER = "SIP/2.0"
     datos_sesion = mi_user.get_tags()
     log_path = str(datos_sesion['log_path'])
@@ -130,7 +130,8 @@ if __name__ == "__main__":
     log_fich = open(log_path, 'a')
     evento = formar_evento('Starting','...','','')
     write_log(log_fich, evento)
-
+    AUDIO_FILE = str(datos_sesion['audio_path']) 
+    #Falta comprobar si existe el fichero de audio
     METODO = arg_term[2]
     OPCION = arg_term[3]
     USER_NAME = datos_sesion['account_username']
@@ -140,6 +141,7 @@ if __name__ == "__main__":
     IP_DEST = ""
     PORT_DEST = 0
     RTP_PORT = datos_sesion['rtpaudio_puerto']
+    dicc_sdp = {}
     if METODO == 'REGISTER':
         try:
             EXPIRES = int(OPCION)
@@ -180,14 +182,14 @@ if __name__ == "__main__":
 	 # Contenido que vamos a enviar
     LINE = METODO + " sip:" + DIR_SIP
     if METODO == 'REGISTER':
-        LINE = LINE + ":" + str(PORT_SERVER) + " " + VER + '\r\n'
-        LINE = LINE + "Expires: " + str(EXPIRES) + '\r\n\r\n'
+        LINE += ":" + str(PORT_SERVER) + " " + VER + '\r\n'
+        LINE += "Expires: " + str(EXPIRES) + '\r\n\r\n'
     elif METODO == 'INVITE':
-        LINE = LINE + " " + VER + "\r\n" + "Content-Type: application/sdp"
-        LINE = LINE + "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " "
-        LINE = LINE + IP_SERVER + "\r\n" + "s=KnockKnockKnockPenny"
-        LINE = LINE + "\r\n" + "t=0"
-        LINE = LINE + "\r\n" + "m=audio " + str(RTP_PORT) + " RTP" + "\r\n\r\n"
+        LINE += " " + VER + "\r\n" + "Content-Type: application/sdp"
+        LINE += "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " "
+        LINE += IP_SERVER + "\r\n" + "s=KnockKnockKnockPenny"
+        LINE += "\r\n" + "t=0"
+        LINE += "\r\n" + "m=audio " + str(RTP_PORT) + " RTP" + "\r\n\r\n"
     elif METODO == 'BYE':
         LINE = LINE + " " + VER + "\r\n\r\n"
 
@@ -212,14 +214,42 @@ if __name__ == "__main__":
         write_log(log_fich, evento)
         raise SystemExit
 
-    if data.split() == lista_ack:
+    resp_data = data.split('\r\n')
+    resp_data_clean = []
+    for campo in resp_data:
+        if campo != "":
+            resp_data_clean.append(campo)
+
+    resp_to_check = resp_data_clean[0:3]
+
+    if resp_to_check == lista_ack:
+        #Extraemos el puerto RTP al que enviaremos el audio.
+        for linea_resp in resp_data_clean:
+            datos = linea_resp.split('=')
+            if len(datos) == 2:
+                dicc_sdp[datos[0]] = datos[1]
+
+        datos_audio = dicc_sdp['m'].split()
+        if datos_audio[0] == 'audio':
+            audio_prt = int(datos_audio[1])
+        
+        #Enviamos ACK
         LINE2 = 'ACK sip:' + DIR_SIP + " " + VER
         print "Enviando: " + LINE2
         my_socket.send(LINE2 + '\r\n\r\n')
+
+        #Enviamos audio
+        os.system('chmod 755 mp32rtp')
+        to_exe = './mp32rtp -i ' + IP_SERVER
+        to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+        accion = "Enviando audio a " + IP_SERVER + ':'
+        accion += str(audio_prt)
+        print accion
         data2 = my_socket.recv(1024)
-        print "Recibido: " + data2
-        evento = formar_evento('recepcion', data2, '', '')
-        write_log(log_fich, evento)
+        if data2 != "":
+            print "Recibido: " + data2
+            evento = formar_evento('recepcion', data2, '', '')
+            write_log(log_fich, evento)
     print "Terminando socket..."
 
     # Cerramos todo
