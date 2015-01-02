@@ -137,7 +137,6 @@ if __name__ == "__main__":
     RECEPTOR = ""
     EXPIRES = ""
     DIR_SIP = ""
-    MI_IP = "127.0.0.1"
     IP_DEST = ""
     PORT_DEST = 0
     RTP_PORT = datos_sesion['rtpaudio_puerto']
@@ -177,7 +176,6 @@ if __name__ == "__main__":
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((IP_DEST, PORT_DEST))
     who_am_I = my_socket.getsockname()
-    mi_puerto = who_am_I[1]
 
 	 # Contenido que vamos a enviar
     LINE = METODO + " sip:" + DIR_SIP
@@ -215,7 +213,7 @@ if __name__ == "__main__":
         raise SystemExit
 
     if data.split() == lista_ack:
-        LINE2 = 'ACK sip:' + USER_NAME + " " + VER
+        LINE2 = 'ACK sip:' + DIR_SIP + " " + VER
         print "Enviando: " + LINE2
         my_socket.send(LINE2 + '\r\n\r\n')
         data2 = my_socket.recv(1024)
