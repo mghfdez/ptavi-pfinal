@@ -242,6 +242,7 @@ if __name__ == "__main__":
         os.system('chmod 755 mp32rtp')
         to_exe = './mp32rtp -i ' + IP_SERVER
         to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+        os.system(to_exe)
         accion = "Enviando audio a " + IP_SERVER + ':'
         accion += str(audio_prt)
         print accion
