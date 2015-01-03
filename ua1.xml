@@ -1,8 +1,8 @@
 <config>
     <account username = "leonard@bigbang.net" passwd = ""/>
     <uaserver ip = "" puerto = "6002"/>
-    <rtpaudio puerto = "77888"/>
+    <rtpaudio puerto = "23852"/>
     <regproxy ip = "127.0.0.1" puerto = "8008"/>
     <log path = "log_user1.txt"/>
-    <audio path = "cancion.mp3"/>
+    <audio path = "cancion-leonard.mp3"/>
 </config>
