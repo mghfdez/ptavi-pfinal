@@ -77,33 +77,48 @@ class SIPConfigLocal:
     def get_tags(self):
         return self.dicc_datos
 
-def write_log(fichero, evento):
-    datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
-    linea = str(datime) + ' ' + evento + '\r\n'
-    fichero.write(linea)
+class LogConfig:
 
-def formar_evento(tipo, datos, ip, puerto):
-    """ 
-    Forma el evento que se escribirá en el fichero de log
-    """
-    accion = tipo
-    if tipo == 'envio':
-        accion = "Sent to " + ip + ':' + puerto + " "
-    elif tipo == 'recepcion':
-        accion = "Received from " + ip + ':' + puerto + " "
-    elif tipo == 'error':
-        accion = 'Error: '
+    def __init__(self, log_path):
+        self.log_path = log_path
+    
+    def borrar_fichero(self):
+        fich = open(self.log_path, 'w')
+        fich.close()
 
-    #Cambiamos los saltos de línea y lineas en blanco por espacios.
-    datos = datos.split()
-    datos = " ".join(datos)
-    frase = accion + datos
-    return frase
+
+    def write_log(self, evento):
+        datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
+        linea = str(datime) + ' ' + evento + '\r\n'
+        fichero = open(self.log_path, 'a')
+        fichero.write(linea)
+        print "Escribo en fichero " + linea
+        fichero.close()
+
+    def make_event(self, tipo, datos, ip, puerto):
+        """ 
+        Forma el evento que se escribirá en el fichero de log
+        """
+        accion = tipo
+        if tipo == 'envio':
+            accion = "Sent to " + ip + ':' + puerto + " "
+        elif tipo == 'recepcion':
+            accion = "Received from " + ip + ':' + puerto + " "
+        elif tipo == 'error':
+            accion = 'Error: '
+
+        #Cambiamos los saltos de línea y lineas en blanco por espacios.
+        datos = datos.split()
+        datos = " ".join(datos)
+        frase = accion + datos
+        self.write_log(frase)       
+        return frase
 
 if __name__ == "__main__":
     """
     Programa principal 
     """
+    
     usage = "Usage: python uaclient.py config method option"
     arg_term = sys.argv
     mi_user = ""
@@ -125,11 +140,8 @@ if __name__ == "__main__":
     VER = "SIP/2.0"
     datos_sesion = mi_user.get_tags()
     log_path = str(datos_sesion['log_path'])
-    log_fich = open(log_path, 'w')
-    log_fich.close()
-    log_fich = open(log_path, 'a')
-    evento = formar_evento('Starting','...','','')
-    write_log(log_fich, evento)
+    mi_log = LogConfig(log_path)
+    evento = mi_log.make_event('Starting','...','','')
     AUDIO_FILE = str(datos_sesion['audio_path']) 
     #Falta comprobar si existe el fichero de audio
     METODO = arg_term[2]
@@ -197,21 +209,17 @@ if __name__ == "__main__":
     #Imprimimos trazas por el terminal y en el fichero de log
     try:
         print "Enviando: " + LINE
-        evento = formar_evento('envio', LINE, IP_SERVER, str(PORT_SERVER))
-        write_log(log_fich, evento)
+        evento = mi_log.make_event('envio', LINE, IP_SERVER, str(PORT_SERVER))
         my_socket.send(LINE + '\r\n')
         data = my_socket.recv(1024)
-        evento = formar_evento('recepcion', data, '', '')
-        write_log(log_fich, evento)
+        evento = mi_log.make_event('recepcion', data, '', '')
         print "Recibido: " + data
     except socket.error:
         descrip = "No server listening at " + IP_SERVER
         descrip = descrip + " port " + str(PORT_SERVER)
-        evento = formar_evento('error', descrip,'','')
-        write_log(log_fich, evento)
+        evento = mi_log.make_event('error', descrip,'','')
         print "Error: " + descrip
-        evento = formar_evento('Finishing', '...','','')
-        write_log(log_fich, evento)
+        evento = mi_log.make_event('Finishing', '...','','')
         raise SystemExit
 
     resp_data = data.split('\r\n')
@@ -249,10 +257,12 @@ if __name__ == "__main__":
         data2 = my_socket.recv(1024)
         if data2 != "":
             print "Recibido: " + data2
-            evento = formar_evento('recepcion', data2, '', '')
-            write_log(log_fich, evento)
+            evento = mi_log.make_event('recepcion', data2, '', '')
+            mi_log.write_log(log_fich, evento)
     print "Terminando socket..."
 
     # Cerramos todo
+    evento = mi_log.make_event('Finishing', '...','','')
     my_socket.close()
+    
     print "Fin."
