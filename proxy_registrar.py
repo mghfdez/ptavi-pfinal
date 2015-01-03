@@ -14,7 +14,7 @@ import os
 import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
-
+import uaclient
 
 class SIPConfigHandler(ContentHandler):
     """
@@ -76,30 +76,6 @@ class SIPConfigLocal:
     def get_tags(self):
         return self.dicc_datos
 
-def write_log(fichero, evento):
-    fich = open(fichero, 'a')
-    datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
-    linea = str(datime) + ' ' + evento + '\r\n'
-    fich.write(linea)
-    fich.close()
-
-def formar_evento(tipo, datos, ip, puerto):
-    """ 
-    Forma el evento que se escribirá en el fichero de log
-    """
-    accion = tipo
-    if tipo == 'envio':
-        accion = "Sent to " + ip + ':' + puerto + " "
-    elif tipo == 'recepcion':
-        accion = "Received from " + ip + ':' + puerto + " "
-    elif tipo == 'error':
-        accion = 'Error: '
-
-    #Cambiamos los saltos de línea y lineas en blanco por espacios.
-    datos = datos.split()
-    datos = " ".join(datos)
-    frase = accion + datos
-    return frase
 
 def check_request(lista):
     # Comprueba si la petición recibida esta bien formada
@@ -117,41 +93,6 @@ def check_request(lista):
         print "500 Server Internal Error"
         return 0
 
-
-# Recopilamos datos de entrada y comprobamos errores
-usage = "Usage: python proxy_registrar.py config"
-server_data = sys.argv
-mi_serv = ""
-
-if len(server_data) != 2:
-    print usage
-    raise SystemExit
-else:
-    fichero = server_data[1]
-    if not os.path.exists(fichero):
-        print 'No existe fichero XML'
-        print usage
-        raise SystemExit
-    else:
-        mi_serv = SIPConfigLocal(fichero)
-
-VER = "SIP/2.0"
-datos_sesion = mi_serv.get_tags()
-log_path = str(datos_sesion['log_path'])
-log_fich = open(log_path, 'w')
-log_fich.close()
-evento = formar_evento('Listening','...','','')
-write_log(log_path, evento)
-IP = datos_sesion['server_ip']
-PORT = int(datos_sesion['server_puerto'])
-DICC_CLIENT = {}
-name_database = datos_sesion['database_path']
-user_dir = ""
-user_port = 0
-dir_dest = ""
-datos_dest = []
-dicc_sdp = {}
-RTP_INFO = {}
 
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
@@ -193,6 +134,9 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
             cadena = self.rfile.read()
             if cadena != "":
                 print "Recibido: " + cadena
+                dir_ip = self.client_address[0]
+                dir_port = self.client_address[1]
+                evento = mi_log.make_event('recepcion', cadena, dir_ip, str(dir_port))
                 list_words = cadena.split()
                 if list_words[0] == 'REGISTER':
                     self.clean_dic()
@@ -202,20 +146,24 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         exp_time = int(list_words[4])
                         user_port = int(correo.split(":")[2])
                     except ValueError:
-                        self.wfile.write("SIP/2.0 400 BAD REQUEST\r\n\r\n")
+                        descrip = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
+                        self.wfile.write(descrip)
+                        evento = mi_log.make_event('error', descrip,'','')
                         break
                     exp_sec = exp_time + time.time()
-                    dir_ip = self.client_address[0]
                     DICC_CLIENT[user_dir] = [dir_ip, user_port, exp_sec]
+                    
                     self.register2file()
                     print "AÑADIDO cliente " + user_dir
                     print DICC_CLIENT[user_dir]
                     print "Expira en: " + str(exp_time) + " seg.\r\n"
                     self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
+                    evento = mi_log.make_event('envio', cadena, dir_ip, str(user_port))
                     if exp_time == 0:  # Damos de baja al cliente
                         print "DADO DE BAJA cliente " + user_dir + '\n'
                         del DICC_CLIENT[user_dir]
                         self.register2file()
+                        evento = mi_log.make_event('envio', cadena, dir_ip, str(user_port))
                         self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
                     
                 elif list_words[0] == 'INVITE':
@@ -234,11 +182,15 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     mi_socket.connect((IP_DEST, PORT_DEST))
                     print 'Reenviando a ' + dir_dest
+                    evento = mi_log.make_event('envio', cadena, IP_DEST, str(PORT_DEST))
                     mi_socket.send(cadena)
                     data = mi_socket.recv(1024)
                     print "Recibido: " + data
+                    evento = mi_log.make_event('recepcion', data, IP_DEST, str(PORT_DEST))
                     print "Reenviando respuesta a " + str(dicc_sdp['o'])
                     self.wfile.write(data)
+                    #Falta poner correctamente IP y puerto aqui
+                    evento = mi_log.make_event('envio', cadena, str(dicc_sdp['o']), "")
 
                 elif list_words[0] == 'ACK':
                     lista_cadena = cadena.split('\r\n')
@@ -251,6 +203,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     mi_socket.connect((IP_DEST, PORT_DEST))
                     print 'Reenviando a ' + dir_dest
+                    evento = mi_log.make_event('envio', cadena, IP_DEST, str(PORT_DEST))
                     mi_socket.send(cadena)
 
                 elif list_words[0] == 'BYE':
@@ -264,19 +217,55 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mi_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     mi_socket.connect((IP_DEST, PORT_DEST))
                     print 'Reenviando a ' + dir_dest
+                    evento = mi_log.make_event('envio', cadena, IP_DEST, str(PORT_DEST))
                     mi_socket.send(cadena)
                     data = mi_socket.recv(1024)
                     print "Recibido: " + data
+                    evento = mi_log.make_event('recepcion', data, IP_DEST, str(PORT_DEST))
                     print "Reenviando respuesta..."
                     self.wfile.write(data)
-                           
+                    evento = mi_log.make_event('envio', data, "", "")       
                 else:
                     self.clean_dic()
-                    self.wfile.write("SIP/2.0 400 BAD REQUEST\r\n\r\n")
+                    descrip = "SIP/2.0 405 METHOD NOT ALLOWED\r\n\r\n"
+                    self.wfile.write(descrip)
+                    evento = mi_log.make_event('error', descrip,'','')
             else:
                 break
 
 if __name__ == "__main__":
+    # Recopilamos datos de entrada y comprobamos errores
+    usage = "Usage: python proxy_registrar.py config"
+    server_data = sys.argv
+    mi_serv = ""
+
+    if len(server_data) != 2:
+        print usage
+        raise SystemExit
+    else:
+        fichero = server_data[1]
+        if not os.path.exists(fichero):
+            print 'No existe fichero XML'
+            print usage
+            raise SystemExit
+        else:
+            mi_serv = SIPConfigLocal(fichero)
+
+    VER = "SIP/2.0"
+    datos_sesion = mi_serv.get_tags()
+    log_path = str(datos_sesion['log_path'])
+    mi_log = uaclient.LogConfig(log_path)
+    evento = mi_log.make_event('Listening','...','','')
+    IP = datos_sesion['server_ip']
+    PORT = int(datos_sesion['server_puerto'])
+    DICC_CLIENT = {}
+    name_database = datos_sesion['database_path']
+    user_dir = ""
+    user_port = 0
+    dir_dest = ""
+    datos_dest = []
+    dicc_sdp = {}
+    RTP_INFO = {}
     # Creamos servidor SIP y escuchamos
     serv = SocketServer.UDPServer((IP, PORT), SIPRegisterHandler)
     print "Lanzando servidor UDP de SIP...\r\n"
