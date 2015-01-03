@@ -13,6 +13,7 @@ import os
 import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+import uaclient
 
 
 class SIPConfigHandler(ContentHandler):
@@ -78,30 +79,6 @@ class SIPConfigLocal:
     def get_tags(self):
         return self.dicc_datos
 
-def write_log(fichero, evento):
-    fich = open(fichero, 'a')
-    datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
-    linea = str(datime) + ' ' + evento + '\r\n'
-    fich.write(linea)
-    fich.close()
-
-def formar_evento(tipo, datos, ip, puerto):
-    """ 
-    Forma el evento que se escribirá en el fichero de log
-    """
-    accion = tipo
-    if tipo == 'envio':
-        accion = "Sent to " + ip + ':' + puerto + " "
-    elif tipo == 'recepcion':
-        accion = "Received from " + ip + ':' + puerto + " "
-    elif tipo == 'error':
-        accion = 'Error: '
-
-    #Cambiamos los saltos de línea y lineas en blanco por espacios.
-    datos = datos.split()
-    datos = " ".join(datos)
-    frase = accion + datos
-    return frase
 
 def check_request(lista):
     # Comprueba si la petición recibida esta bien formada
@@ -118,48 +95,6 @@ def check_request(lista):
     except IndexError:
         print "500 Server Internal Error"
         return 0
-
-
-# Recopilamos datos de entrada y comprobamos errores
-usage = "Usage: python uaserver.py config"
-server_data = sys.argv
-mi_serv = ""
-
-if len(server_data) != 2:
-    print usage
-    raise SystemExit
-else:
-    fichero = server_data[1]
-    if not os.path.exists(fichero):
-        print 'No existe fichero XML'
-        print usage
-        raise SystemExit
-    else:
-        mi_serv = SIPConfigLocal(fichero)
-
-VER = "SIP/2.0"
-datos_sesion = mi_serv.get_tags()
-log_path = str(datos_sesion['log_path'])
-log_fich = open(log_path, 'w')
-log_fich.close()
-evento = formar_evento('Listening','...','','')
-write_log(log_path, evento)
-IP = datos_sesion['uaserver_ip']
-RTP_INFO = {}
-dicc_sdp = {}
-mi_dir = datos_sesion['account_username']
-try:
-    PORT = int(datos_sesion['uaserver_puerto'])
-except ValueError:
-    print usage
-    raise SystemExit
-
-AUDIO_FILE = str(datos_sesion['audio_path'])
-audio_port = datos_sesion['rtpaudio_puerto']
-
-if not os.path.exists(AUDIO_FILE):
-    print usage
-    raise SystemExit
 
 
 class SIPHandler(SocketServer.DatagramRequestHandler):
@@ -181,11 +116,11 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 if not list_ok:
                     resp = "SIP/2.0 400 Bad Request\r\n\r\n"
                     self.wfile.write(resp)
-                    evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
-                    write_log(log_path, evento) 
+                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
+                     
                     break
-                evento = formar_evento('recepcion', cadena, ip_clnt, str(port_clnt))
-                write_log(log_path, evento) 
+                evento = mi_log.make_event('recepcion', cadena, ip_clnt, str(port_clnt))
+                 
                 print 'Recibido: ' + cadena
                 # Gestionamos la peticion dependiendo del método
                 if list_words[0] == 'INVITE':
@@ -211,15 +146,15 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     resp += str(audio_port) + " RTP" + "\r\n\r\n"
                     print "Enviando respuesta (200 OK + SDP)..."
                     self.wfile.write(resp)
-                    evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
-                    write_log(log_path, evento)
+                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
+                    
 
                 elif list_words[0] == 'BYE':
                     resp = "SIP/2.0 200 OK\r\n\r\n"
                     print "Enviando respuesta..."
                     self.wfile.write(resp)
-                    evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
-                    write_log(log_path, evento)
+                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
+                    
 
                 elif list_words[0] == "ACK":
                     audio_prt = RTP_INFO['rtp_port']
@@ -230,20 +165,61 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     accion += str(audio_prt)
                     print accion
                     os.system(to_exe)
-                    evento = formar_evento(accion, "", "", "")
-                    write_log(log_path, evento) 
+                    evento = mi_log.make_event(accion, "", "", "")
+                     
 
                 else:
                     resp = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     self.wfile.write(resp)
-                    evento = formar_evento('envio', resp, ip_clnt, str(port_clnt))
-                    write_log(log_path, evento)
+                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
+                    
             # Si no hay más líneas salimos del bucle infinito
             else:
                 break
 
 if __name__ == "__main__":
     # Creamos servidor de eco y escuchamos
+
+    # Recopilamos datos de entrada y comprobamos errores
+    usage = "Usage: python uaserver.py config"
+    server_data = sys.argv
+    mi_serv = ""
+
+    if len(server_data) != 2:
+        print usage
+        raise SystemExit
+    else:
+        fichero = server_data[1]
+        if not os.path.exists(fichero):
+            print 'No existe fichero XML'
+            print usage
+            raise SystemExit
+        else:
+            mi_serv = SIPConfigLocal(fichero)
+
+    VER = "SIP/2.0"
+    datos_sesion = mi_serv.get_tags()
+    log_path = str(datos_sesion['log_path'])
+    mi_log = uaclient.LogConfig(log_path)
+    #mi_log.borrar_fichero()
+    evento = mi_log.make_event('Listening','...','','')
+
+    IP = datos_sesion['uaserver_ip']
+    RTP_INFO = {}
+    dicc_sdp = {}
+    mi_dir = datos_sesion['account_username']
+    try:
+        PORT = int(datos_sesion['uaserver_puerto'])
+    except ValueError:
+        print usage
+        raise SystemExit
+
+    AUDIO_FILE = str(datos_sesion['audio_path'])
+    audio_port = datos_sesion['rtpaudio_puerto']
+
+    if not os.path.exists(AUDIO_FILE):
+        print usage
+        raise SystemExit
     try:
         serv = SocketServer.UDPServer((IP, PORT), SIPHandler)
         print "Listening..."
