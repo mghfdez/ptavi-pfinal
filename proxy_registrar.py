@@ -7,15 +7,16 @@ Clase (y programa principal) para un servidor proxy_registrar
 import SocketServer
 import sys
 import time
+import socket
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
 
-
 dic_user = {}
 
-def log_status (Estado):
-    fich = open("LOG_PROXY", "a")
+
+def log_status(Estado):
+    fich = open("LOG_PROXY.txt", "a")
     fich.write(time.strftime('%Y%m%d%H%M%S '))
     fich.write(Estado+"\r")
 # ================================ OBJETOS =================================
@@ -32,39 +33,42 @@ class XMLHandler(ContentHandler):
         self.tags = ["server", "database", "log"]
         self.atributos = {
             "server": ["name", "ip", "puerto"],
-            "database": ["path","passwpath"],
+            "database": ["path", "passwpath"],
             "log": ["path"],
         }
 
     def get_tags(self):
         return self.elementos
-    
+
     def startElement(self, name, attrs):
         if name in self.tags:
             for atributo in self.atributos[name]:
-                self.elementos[name + "_" + atributo] = attrs.get(atributo, "") 
-
+                self.elementos[name + "_" + atributo] = attrs.get(atributo, "")
 
 
 # ======================== HANDLE =================================
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
-    def buscador_puertos(dic, puerto):
-        for i in dic:
-            if dic[i][1] != puerto:
-                puerto_reenvio = dic[i][1]
-        return puerto_reenvio
+    def reenvio(self, ip, puerto, mensaje):
+        """
+        Función que abre un socket directo para esperar
+        recibir de el las respuestas
+        """
+        my_socket_resend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        my_socket_resend.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        my_socket_resend.connect((ip, puerto))
 
-    def reenvio(ip,puerto,mensaje):
+        my_socket_resend.send(mensaje)
 
-        puerto_reenvio = buscador_puertos(dic_user,puerto)
+        try:
+            data = my_socket_resend.recv(1024)
+            self.wfile.write(data)
 
-        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((ip, puerto))
+        except socket.error:
+            fecha = time.strftime('%Y%m%d%h%M%S', time.gmtime(time.time()))
+            print "Error: No server listening at", UASERVER_IP, \
+                "port", PROXY_PORT
 
-        my_socket.send(mensaje)
-
-        my_socket.close()
+        my_socket_resend.close()
 
     def delete_expires(self):
         """
@@ -105,7 +109,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         # Recoge el mensaje de entrada la IP y Puerto del cliente.
         address = self.client_address[0]
         port = self.client_address[1]
-        print port
         # Escribe dirección y puerto del cliente.
         print "- Cliente con IP", str(address), "y puerto:", str(port)
 
@@ -116,66 +119,122 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 break
             else:
                 if "\r\n\r\n" in line:
-                    print "- Mensaje de entrada: " + line,
+                    print "MENSAJE DE ENTRADA: "
+                    print "==================="
+                    print line
                     mensaje = line
                     line = line.split()
-                    line[1] = line[1].split(":")
+
                     if line[0] == "REGISTER" and line[2] == "SIP/2.0":
+
+                        Reg_log = "Received REGISTER from " + line[1] + ":" \
+                            + line[2] + ":" + "200 OK [...]"
+                        log_status(Reg_log)
+
+                        line[1] = line[1].split(":")
                         reply = " SIP/2.0 200 OK\r\n\r\n"
                         self.wfile.write(reply)
                         # Si Expires es == 0:
                         if line[-1] == '0':
                             if line[1][1] in dic_user:
-                                #self.wfile.write(reply)
+                                self.wfile.write(reply)
                                 del dic_user[line[1][1]]
                                 print "Eliminando a: " + line[1][1]
+                                print "LISTA DE USUARIOS: " + "\n", dic_user
                         else:
                             # Si Expires != 0 construimos el diccionario.
                             key = line[1][1]
-                            value = [address, line[1][2] , time.time(), line[-1]]
+                            value = [address, line[1][2], time.time(), line[-1]]
                             dic_user[key] = value
-                            print "LISTA DE USUARIOS: " + "\n", dic_user
-                            print "------------------" + "\n"
+
+                            print "LISTA DE USUARIOS:"
+                            print "------------------"
+                            print dic_user
+
 # ========================= INVITE ======================================
+
                     elif line[0] == "INVITE" and line[2] == "SIP/2.0":
-                        print line
-                        print "AAAAAAAAAAAAAAAAAA"
-                        print dic_user[0][1]
-                        print 
-                        self.reenvio(address, port, mensaje)
-                        if ("sip:" in line[1][:4]) and \
+
+                        Inv_log = "Received INVITE from " + line[1] + ":" \
+                            + "200 OK [...]"
+                        log_status(Inv_log)
+
+                        print "LINE DESPUES DEL IF: ", line
+                        print "=============================================="
+
+                        if ("sip:" in line[1]) and \
                                 ("@" in line[1]) and line[2] == 'SIP/2.0':
 
+                            print "LINE vale =======> ", line[1][1]
+
                             line[1] = line[1].split(":")
-                            METODO = line[0]
-                            print line[1]
+                            print line
 
-                            Answer = "SIP/2.0 100 Trying\r\n\r\n" + \
-                                "SIP/2.0 180 Ringing\r\n\r\n" + \
-                                "SIP/2.0 200 OK\r\n\r\n"
-                            self.wfile.write(Answer)
+                            if dic_user.has_key(line[1][1]):
 
-                            print "AAAAAAAAAAAAAAAAAA"
-                            print dic_user[1][1]
-                            print 
-                            self.reenvio(address, port, mensaje)
+                                var_aux = dic_user[str(line[1][1])]
+                                puerto_destino = var_aux[1]
+                                ip_destino = line[1][1].split("@")[1]
 
+                                self.reenvio(ip, int(puerto_destino), mensaje)
+
+                                Reenv_log = "ReSent to " \
+                                    + line[1][1].split("@")[1] + ":" \
+                                    + line[2] + ":" + "200 OK [...]"
+                                log_status(Reenv_log)
+                            else:
+                                Answer = "SIP/2.0 404 User not found"
+                                self.wfile.write(Answer)
+                        else:
+                            Answer = "SIP/2.0 400 Bad Request"
 
 # ========================= ACK ======================================
 
-                    elif METODO == "ACK":
+                    elif line[0] == "ACK" and line[2] == 'SIP/2.0':
                         print "Llega un ACK"
+
+                        Ack_log = "Received INVITE from " + line[1] \
+                            + ":" + "200 OK [...]"
+                        log_status(Ack_log)
+
+                        line[1] = line[1].split(":")
+
+                        var_aux = dic_user[str(line[1][1])]
+                        puerto_destino = var_aux[1]
+                        ip_destino = line[1][1].split("@")[1]
+
+                        print
+                        print
+                        print "El mensaje es: ", mensaje
+                        print "EL PUERTO DE DESTINO ES: ", puerto_destino
+                        self.reenvio(ip, int(puerto_destino), mensaje)
 
 # ========================= BYE ======================================
 
-                    elif METODO == "BYE":
+                    elif line[0] == "BYE" and line[2] == 'SIP/2.0':
                         self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
 
+                        Bye_log = "Received INVITE from " \
+                            + line[1] + ":" + "200 OK [...]"
+                        log_status(Bye_log)
 
+                        line[1] = line[1].split(":")
+
+                        var_aux = dic_user[str(line[1][1])]
+                        puerto_destino = var_aux[1]
+                        ip_destino = line[1][1].split("@")[1]
+                        print
+                        print
+                        print "El mensaje es: ", mensaje
+                        print "PUERTO DE DESTINO: ", puerto_destino
+                        self.reenvio(ip, int(puerto_destino), mensaje)
 
                     elif METODO not in metodos:
                         self.wfile.write("SIP/2.0 405 Method \
                             Not Allowed\r\n\r\n")
+
+                        Error_log = "Method Not Allowed"
+                        log_status(Error_log)
                 else:
                     self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
                 # Comprobamos que no hay usuarios con Expires = 0.
@@ -193,7 +252,7 @@ if __name__ == "__main__":
     myProxy_Registrar = XMLHandler()
     parser.setContentHandler(myProxy_Registrar)
     parser.parse(open(fich))
-    print myProxy_Registrar.get_tags()
+    #print myProxy_Registrar.get_tags()
 
     LOG_PROXY = myProxy_Registrar.elementos["log_path"]
 
@@ -206,5 +265,8 @@ if __name__ == "__main__":
     print "========== Servidor Proxy-Registrar conectado ==========="
     print "========================================================="
     print "Puerto atado =>", SERVER_PORT
-    serv.serve_forever()
 
+    Start_log = "Starting..."
+    log_status(Start_log)
+
+    serv.serve_forever()
