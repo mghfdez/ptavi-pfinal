@@ -7,12 +7,13 @@ IGNACIO ARRANZ ÁGUEDA - ISAM - PTAVI - PRACTICA FINAL
 import time
 import socket
 import sys
+import os
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
 
-
 metodos = ("REGISTER", "INVITE", "BYE", "ACK")
+
 
 # ================================ OBJETOS =================================
 class XMLHandler(ContentHandler):
@@ -22,7 +23,7 @@ class XMLHandler(ContentHandler):
         self.tags = ["account", "uaserver", "rtpaudio", "regproxy", "log", "audio"]
         self.atributos = {
             "account": ["username", "passwd"],
-            "uaserver": ["ip","puerto"],
+            "uaserver": ["ip", "puerto"],
             "rtpaudio": ["puerto"],
             "regproxy": ["ip", "puerto"],
             "log": ["path"],
@@ -32,20 +33,24 @@ class XMLHandler(ContentHandler):
     def get_tags(self):
     # Devuelve una lista con etiquetas, atributos y contenidos encontrados
         return self.elementos
-    
+
     def startElement(self, name, attrs):
         if name in self.tags:
             for atributo in self.atributos[name]:
-                self.elementos[name + '_' + atributo] = attrs.get(atributo, "")  
+                self.elementos[name + '_' + atributo] = attrs.get(atributo, "")
 # =============================== FUNCIONES ====================================
-def log_status (Estado):
-    fich = open("LOG_CLIENT", "a")
+
+
+def log_status(Estado):
+    fich = open("LOG_CLIENT.txt", "a")
     fich.write(time.strftime('%Y%m%d%H%M%S '))
     fich.write(Estado+"\r")
 
 
-
-
+def saca_puerto_rtp(data):
+    rtp_split = data.split("\r\n")[3]
+    rtp_port = rtp_split.split(" ")[1]
+    return rtp_port
 
 # ========================== PROGRAMA PRINCIPAL ===============================
 if __name__ == "__main__":
@@ -58,9 +63,6 @@ if __name__ == "__main__":
     myHandler = XMLHandler()
     parser.setContentHandler(myHandler)
     parser.parse(open(fich))
-    print myHandler.get_tags()
-
-
 
 # Extraer campos del diccionario
 # ===============================
@@ -88,14 +90,14 @@ if len(sys.argv) == 4:
 
     if METODO == "REGISTER" and len(sys.argv) == 4:
         LINE = METODO + " sip:" + NAME + "@" + UASERVER_IP + ":" \
-                + UASERVER_PORT +  " SIP/2.0\r\n"
+            + UASERVER_PORT + " SIP/2.0\r\n"
         LINE = LINE + "Expires: " + OPCION + "\r\n\r\n"
 
     elif METODO == "INVITE" or METODO == "BYE":
         SDP = "v=0\r\n" + "o=" + NAME + "@" + UASERVER_IP + "\r\n" \
-                + "s=SesionSIP\r\n" + "m=audio " + str(RTP_PORT) + " RTP"
+            + "s=SesionSIP\r\n" + "m=audio " + str(RTP_PORT) + " RTP"
 
-        LINE = METODO + " sip:" + OPCION + "@" + UASERVER_IP + " SIP/2.0\r\n"
+        LINE = METODO + " sip:" + OPCION + " SIP/2.0\r\n"
         LINE += "Content-Type: application/sdp\r\n\r\n"
         LINE += str(SDP)
 
@@ -112,21 +114,24 @@ log_status(Start_log)
 
 # Envio de informacion
 print "Enviando: " + LINE
-my_socket.send(LINE + '\r\n')
+my_socket.send(LINE)
 
 # Log
-Sent_log = "Sent to " + str(UASERVER_IP[0]) + ":" \
-            + str(UASERVER_PORT) + " " + str(LINE.split("\r\n")[0])
+Sent_log = "Sent to " + str(UASERVER_IP) + ":" \
+    + str(UASERVER_PORT) + " " + str(LINE.split("\r\n")[0])
 log_status(Sent_log)
 
 
 try:
     data = my_socket.recv(1024)
-    print 'Recibido -- ', data
+    print
+    print 'MENSAJE DE ENTRADA'
+    print "=================="
+    print data
     #Log
     Answers = "200 OK [...]"
     Recv_log = "Received from " + str(NAME) + ":" + str(UASERVER_PORT) \
-                + ":" + Answers
+        + ":" + Answers
     log_status(Recv_log)
 except socket.error:
     fecha = time.strftime('%Y%m%d%h%M%S', time.gmtime(time.time()))
@@ -135,15 +140,25 @@ except socket.error:
 
 
 data = data.split("\r\n\r\n")
+print "DATA DESPUES DEL SPLIT ES =====>", data
 
 if data[0] == "SIP/2.0 100 Trying" and data[1] == "SIP/2.0 180 Ringing":
     if data[2] == "SIP/2.0 200 OK":
         # Se envia ACK
         METODO = "ACK"
-        LINE = METODO + " sip:" + NAME + "@" + UASERVER_IP + " SIP/2.0\r\n"
+        LINE = METODO + " sip:" + OPCION + " SIP/2.0\r\n"
         # Envio de informacion
         print "Enviando Confirmacion: " + LINE
         my_socket.send(LINE + '\r\n')
 
+        rtp_port = saca_puerto_rtp(data[3])
+        print "RTP PORT ES: ", rtp_port
+
+        print "Comienza la transmision........."
+        Streaming = './mp32rtp -i ' + OPCION + " -p " + rtp_port
+        Streaming += " < " + myHandler.elementos["audio_path"]
+        os.system(Streaming)
+
+        print "Fin de la emision"
 # Cerramos todo
 my_socket.close()
