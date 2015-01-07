@@ -4,7 +4,8 @@
 """
 Clase (y programa principal) para un servidor SIP
 """
-#¿Hay que copiar otra vez todo el parser? (Clase incluido?)
+# ¿Hay que copiar otra vez todo el parser? (Clase incluido?)
+# No, mejor importar la clase del cliente
 
 import SocketServer
 import socket
@@ -24,18 +25,15 @@ class SIPConfigHandler(ContentHandler):
         """
         Constructor
         """
-        
-        self.dicc_config = {
-                            'account': ['username', 'passwd'],
+
+        self.dicc_config = {'account': ['username', 'passwd'],
                             'uaserver': ['ip', 'puerto'],
                             'rtpaudio': ['puerto'],
                             'regproxy': ['ip', 'puerto'],
                             'log': ['path'],
-                            'audio': ['path']
-                            }
+                            'audio': ['path']}
 
         self.dicc_atrib = {}
-        
 
     def startElement(self, name, attrs):
         """
@@ -50,13 +48,13 @@ class SIPConfigHandler(ContentHandler):
                 if atr_name == 'uaserver_ip':
                     if self.dicc_atrib[atr_name] == "":
                         self.dicc_atrib[atr_name] = '127.0.0.1'
-                
 
     def get_tags(self):
         """
         Metodo que devuelve el diccionario de elementos
         """
         return self.dicc_atrib
+
 
 class SIPConfigLocal:
     """
@@ -73,9 +71,10 @@ class SIPConfigLocal:
     def __str__(self):
         frase = ""
         for atrib in self.dicc_datos.keys():
-            frase = frase + "\r\n" + atrib + '="' + self.dicc_datos[atrib] + '"'
+            frase = frase + "\r\n" + atrib + '="'
+            frase += self.dicc_datos[atrib] + '"'
         print frase
-    
+
     def get_tags(self):
         return self.dicc_datos
 
@@ -103,7 +102,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
     """
 
     def handle(self):
-        
+
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             cadena = self.rfile.read()
@@ -116,12 +115,14 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 if not list_ok:
                     resp = "SIP/2.0 400 Bad Request\r\n\r\n"
                     self.wfile.write(resp)
-                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
-                     
+                    evento = mi_log.make_event('envio', resp,
+                                               ip_clnt, str(port_clnt))
                     break
-                evento = mi_log.make_event('recepcion', cadena, ip_clnt, str(port_clnt))
-                 
+
+                evento = mi_log.make_event('recepcion', cadena,
+                                           ip_clnt, str(port_clnt))
                 print 'Recibido: ' + cadena
+
                 # Gestionamos la peticion dependiendo del método
                 if list_words[0] == 'INVITE':
                     lista_cadena = cadena.split('\r\n')
@@ -146,15 +147,15 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     resp += str(audio_port) + " RTP" + "\r\n\r\n"
                     print "Enviando respuesta (200 OK + SDP)..."
                     self.wfile.write(resp)
-                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
-                    
+                    evento = mi_log.make_event('envio', resp,
+                                               ip_clnt, str(port_clnt))
 
                 elif list_words[0] == 'BYE':
                     resp = "SIP/2.0 200 OK\r\n\r\n"
                     print "Enviando respuesta..."
                     self.wfile.write(resp)
-                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
-                    
+                    evento = mi_log.make_event('envio', resp,
+                                               ip_clnt, str(port_clnt))
 
                 elif list_words[0] == "ACK":
                     audio_prt = RTP_INFO['rtp_port']
@@ -166,13 +167,14 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     print accion
                     os.system(to_exe)
                     evento = mi_log.make_event(accion, "", "", "")
-                     
+                    print "Terminado envío de audio\r\n"
 
                 else:
                     resp = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     self.wfile.write(resp)
-                    evento = mi_log.make_event('envio', resp, ip_clnt, str(port_clnt))
-                    
+                    evento = mi_log.make_event('envio', resp,
+                                               ip_clnt, str(port_clnt))
+
             # Si no hay más líneas salimos del bucle infinito
             else:
                 break
@@ -201,9 +203,7 @@ if __name__ == "__main__":
     datos_sesion = mi_serv.get_tags()
     log_path = str(datos_sesion['log_path'])
     mi_log = uaclient.LogConfig(log_path)
-    #mi_log.borrar_fichero()
-    evento = mi_log.make_event('Listening','...','','')
-
+    evento = mi_log.make_event('Listening', '...', '', '')
     IP = datos_sesion['uaserver_ip']
     RTP_INFO = {}
     dicc_sdp = {}
