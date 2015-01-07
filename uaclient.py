@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
-#Practica Final - Miguel Angel Fernandez Sanchez
+#Practica Final - UAClient - Miguel Angel Fernandez Sanchez
 """
 Programa cliente que abre un socket a un servidor
 """
@@ -87,7 +87,7 @@ class LogConfig:
         fich.close()
 
     def write_log(self, evento):
-        datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
+        datime = time.strftime("%Y%m%d%H%M%S", time.gmtime())
         linea = str(datime) + ' ' + evento + '\r\n'
         fichero = open(self.log_path, 'a')
         fichero.write(linea)
