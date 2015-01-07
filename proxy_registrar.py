@@ -65,8 +65,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
         except socket.error:
             fecha = time.strftime('%Y%m%d%h%M%S', time.gmtime(time.time()))
-            print "Error: No server listening at", UASERVER_IP, \
-                "port", PROXY_PORT
+            print "Error: No server listening at", ip, \
+                "port", puerto
 
         my_socket_resend.close()
 
@@ -109,9 +109,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         # Recoge el mensaje de entrada la IP y Puerto del cliente.
         address = self.client_address[0]
         port = self.client_address[1]
-        # Escribe dirección y puerto del cliente.
-        print "- Cliente con IP", str(address), "y puerto:", str(port)
-
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente.
             line = self.rfile.read()
@@ -159,9 +156,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                             + "200 OK [...]"
                         log_status(Inv_log)
 
-                        print "LINE DESPUES DEL IF: ", line
-                        print "=============================================="
-
                         if ("sip:" in line[1]) and \
                                 ("@" in line[1]) and line[2] == 'SIP/2.0':
 
@@ -176,7 +170,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                                 puerto_destino = var_aux[1]
                                 ip_destino = line[1][1].split("@")[1]
 
-                                self.reenvio(ip, int(puerto_destino), mensaje)
+                                self.reenvio(ip_destino, int(puerto_destino), mensaje)
 
                                 Reenv_log = "ReSent to " \
                                     + line[1][1].split("@")[1] + ":" \
@@ -203,17 +197,11 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         puerto_destino = var_aux[1]
                         ip_destino = line[1][1].split("@")[1]
 
-                        print
-                        print
-                        print "El mensaje es: ", mensaje
-                        print "EL PUERTO DE DESTINO ES: ", puerto_destino
-                        self.reenvio(ip, int(puerto_destino), mensaje)
+                        self.reenvio(ip_destino, int(puerto_destino), mensaje)
 
 # ========================= BYE ======================================
 
                     elif line[0] == "BYE" and line[2] == 'SIP/2.0':
-                        self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
-
                         Bye_log = "Received INVITE from " \
                             + line[1] + ":" + "200 OK [...]"
                         log_status(Bye_log)
@@ -223,11 +211,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         var_aux = dic_user[str(line[1][1])]
                         puerto_destino = var_aux[1]
                         ip_destino = line[1][1].split("@")[1]
-                        print
-                        print
-                        print "El mensaje es: ", mensaje
-                        print "PUERTO DE DESTINO: ", puerto_destino
-                        self.reenvio(ip, int(puerto_destino), mensaje)
+                    
+                        self.reenvio(ip_destino, int(puerto_destino), mensaje)
 
                     elif METODO not in metodos:
                         self.wfile.write("SIP/2.0 405 Method \
@@ -264,7 +249,7 @@ if __name__ == "__main__":
     print "========================================================="
     print "========== Servidor Proxy-Registrar conectado ==========="
     print "========================================================="
-    print "Puerto atado =>", SERVER_PORT
+    #print "Puerto atado =>", SERVER_PORT
 
     Start_log = "Starting..."
     log_status(Start_log)
