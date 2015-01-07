@@ -1,6 +1,6 @@
 <config>
-    <server name = "MiServidorBigBangTheory" ip = "" puerto = "8008"/>
-    <database path = "pr-db.txt" passwdpath = ""/>
-    <log path = "pr-log.txt"/>
+    <server name = "MiServidorBigBangTheory" ip = "" puerto = "9073"/>
+    <database path = "/tmp/pr-db" passwdpath = ""/>
+    <log path = "/tmp/pr-log"/>
 </config>
 
