@@ -3,6 +3,6 @@
     <uaserver ip = "" puerto = "6005"/>
     <rtpaudio puerto = "23853"/>
     <regproxy ip = "127.0.0.1" puerto = "8008"/>
-    <log path = "log_user2.txt"/>
-    <audio path = "cancion-sheldon.mp3"/>
+    <log path = "/tmp/log_user2"/>
+    <audio path = "cancion.mp3"/>
 </config>
