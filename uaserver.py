@@ -91,8 +91,10 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
                                 # Guardamos en un diccionario el usuario y
                                 # puerto que entra
-                                port_rtp_dic[line[1][1]] = line[-2]
+                                ip_destino =line[1][1].split("@")[1]
+                                port_rtp_dic[ip_destino] = line[-2]
 
+                                print "line[1][1] VALE ¿¿?¿¿?¿?¿?¿?¿¿", line[1][1]
                                 # Se forma el SPD
                                 NAME = line[6].split("=")[1]
                                 RTP_PORT = myHandler.elementos["rtpaudio_puerto"]
@@ -119,11 +121,13 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                                     + ":" + "200 OK [...]"
                                 log_status(Ack_log)
 
+                                ip_destino = line[1][1].split("@")[1]
+
                                 # RTP
                                 print "Comienza la transmision........."
-                                Streaming = './mp32rtp -i ' + ip_destino \
-                                    + " -p " + port_rtp_dic[ip_destino]
-                                Streaming += " < " + myHandler.elementos["audio_path"]
+                                Streaming = './mp32rtp -i ' + ip_destino + \
+                                    " -p " + port_rtp_dic[ip_destino]
+                                Streaming += " < " + FILE
                                 os.system(Streaming)
                                 print "Fin de la emision"
 
@@ -134,8 +138,13 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
 # =============================== BYE ===========================
                             elif METODO == "BYE":
+
+                                print
+                                print
+                                print "A veeeeer, line[1][1] vale: ", line[1][1]
+
                                 Bye_log = "Received BYE from " + \
-                                    + str(line[1]) + ":" + "200 OK [...]"
+                                    client_address + ":" + "200 OK [...]"
                                 log_status(Bye_log)
 
                                 self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
@@ -162,7 +171,7 @@ if __name__ == "__main__":
 
     UASERVER_IP = myHandler.elementos["uaserver_ip"]
     UASERVER_PORT = int(myHandler.elementos["uaserver_puerto"])
-    print "Puerto al que se ata", UASERVER_PORT
+    #print "Puerto al que se ata", UASERVER_PORT
 
     # Creamos servidor de eco y escuchamos
     serv = SocketServer.UDPServer(("", UASERVER_PORT), EchoHandler)
