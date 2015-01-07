@@ -93,7 +93,7 @@ if len(sys.argv) == 4:
             + UASERVER_PORT + " SIP/2.0\r\n"
         LINE = LINE + "Expires: " + OPCION + "\r\n\r\n"
 
-    elif METODO == "INVITE" or METODO == "BYE":
+    elif METODO == "INVITE" and len(sys.argv) == 4:
         SDP = "v=0\r\n" + "o=" + NAME + "@" + UASERVER_IP + "\r\n" \
             + "s=SesionSIP\r\n" + "m=audio " + str(RTP_PORT) + " RTP"
 
@@ -101,6 +101,8 @@ if len(sys.argv) == 4:
         LINE += "Content-Type: application/sdp\r\n\r\n"
         LINE += str(SDP)
 
+    elif METODO == "BYE" and len(sys.argv) == 4:
+        LINE = METODO + " sip:" + OPCION + " SIP/2.0\r\n\r\n"
     else:
         print "Usage: python uaclient.py config method option"
 
@@ -140,7 +142,6 @@ except socket.error:
 
 
 data = data.split("\r\n\r\n")
-print "DATA DESPUES DEL SPLIT ES =====>", data
 
 if data[0] == "SIP/2.0 100 Trying" and data[1] == "SIP/2.0 180 Ringing":
     if data[2] == "SIP/2.0 200 OK":
@@ -153,6 +154,8 @@ if data[0] == "SIP/2.0 100 Trying" and data[1] == "SIP/2.0 180 Ringing":
 
         rtp_port = saca_puerto_rtp(data[3])
         print "RTP PORT ES: ", rtp_port
+
+        OPCION = OPCION.split("@")[1]
 
         print "Comienza la transmision........."
         Streaming = './mp32rtp -i ' + OPCION + " -p " + rtp_port
