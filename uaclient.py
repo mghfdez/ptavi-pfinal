@@ -5,7 +5,6 @@
 Programa cliente que abre un socket a un servidor
 """
 
-#Pregunta: Cuando abrimos el fichero de log, ¿machacamos contenido anterior?
 
 import socket
 import sys
@@ -13,6 +12,7 @@ import os
 import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+
 
 class SIPConfigHandler(ContentHandler):
     """
@@ -22,9 +22,8 @@ class SIPConfigHandler(ContentHandler):
         """
         Constructor
         """
-        
-        self.dicc_config = {
-                            'account': ['username', 'passwd'],
+
+        self.dicc_config = {'account': ['username', 'passwd'],
                             'uaserver': ['ip', 'puerto'],
                             'rtpaudio': ['puerto'],
                             'regproxy': ['ip', 'puerto'],
@@ -33,7 +32,6 @@ class SIPConfigHandler(ContentHandler):
                             }
 
         self.dicc_atrib = {}
-        
 
     def startElement(self, name, attrs):
         """
@@ -48,13 +46,13 @@ class SIPConfigHandler(ContentHandler):
                 if atr_name == 'uaserver_ip':
                     if self.dicc_atrib[atr_name] == "":
                         self.dicc_atrib[atr_name] = '127.0.0.1'
-                
 
     def get_tags(self):
         """
         Metodo que devuelve el diccionario de elementos
         """
         return self.dicc_atrib
+
 
 class SIPConfigLocal:
     """
@@ -71,32 +69,32 @@ class SIPConfigLocal:
     def __str__(self):
         frase = ""
         for atrib in self.dicc_datos.keys():
-            frase = frase + "\r\n" + atrib + '="' + self.dicc_datos[atrib] + '"'
+            frase = frase + "\r\n" + atrib + '="'
+            frase += self.dicc_datos[atrib] + '"'
         print frase
-    
+
     def get_tags(self):
         return self.dicc_datos
+
 
 class LogConfig:
 
     def __init__(self, log_path):
         self.log_path = log_path
-    
+
     def borrar_fichero(self):
         fich = open(self.log_path, 'w')
         fich.close()
-
 
     def write_log(self, evento):
         datime = time.strftime("%Y%m%d%Y%H%M%S", time.gmtime())
         linea = str(datime) + ' ' + evento + '\r\n'
         fichero = open(self.log_path, 'a')
         fichero.write(linea)
-        print "Escribo en fichero " + linea
         fichero.close()
 
     def make_event(self, tipo, datos, ip, puerto):
-        """ 
+        """
         Forma el evento que se escribirá en el fichero de log
         """
         accion = tipo
@@ -111,14 +109,14 @@ class LogConfig:
         datos = datos.split()
         datos = " ".join(datos)
         frase = accion + datos
-        self.write_log(frase)       
+        self.write_log(frase)
         return frase
 
 if __name__ == "__main__":
     """
-    Programa principal 
+    Programa principal
     """
-    
+
     usage = "Usage: python uaclient.py config method option"
     arg_term = sys.argv
     mi_user = ""
@@ -141,9 +139,14 @@ if __name__ == "__main__":
     datos_sesion = mi_user.get_tags()
     log_path = str(datos_sesion['log_path'])
     mi_log = LogConfig(log_path)
-    evento = mi_log.make_event('Starting','...','','')
-    AUDIO_FILE = str(datos_sesion['audio_path']) 
-    #Falta comprobar si existe el fichero de audio
+    evento = mi_log.make_event('Starting', '...', '', '')
+    AUDIO_FILE = str(datos_sesion['audio_path'])
+
+    if not os.path.exists(AUDIO_FILE):
+        print 'No existe el fichero de audio'
+        print usage
+        raise SystemExit
+    #evento = mi_log.make_event('error','...','','')
     METODO = arg_term[2]
     OPCION = arg_term[3]
     USER_NAME = datos_sesion['account_username']
@@ -165,7 +168,7 @@ if __name__ == "__main__":
     else:
         RECEPTOR = OPCION
         DIR_SIP = RECEPTOR
-    
+
     # Comprobamos si el método es conocido
     if METODO not in method_list:
         print usage
@@ -176,7 +179,6 @@ if __name__ == "__main__":
     # Comprobamos si el puerto introducido es correcto
     try:
         PORT_SERVER = int(datos_sesion['uaserver_puerto'])
-        
     except ValueError:
         print usage
         raise SystemExit
@@ -191,7 +193,7 @@ if __name__ == "__main__":
     my_socket.connect((IP_DEST, PORT_DEST))
     who_am_I = my_socket.getsockname()
 
-	 # Contenido que vamos a enviar
+    # Contenido que vamos a enviar
     LINE = METODO + " sip:" + DIR_SIP
     if METODO == 'REGISTER':
         LINE += ":" + str(PORT_SERVER) + " " + VER + '\r\n'
@@ -209,17 +211,17 @@ if __name__ == "__main__":
     #Imprimimos trazas por el terminal y en el fichero de log
     try:
         print "Enviando: " + LINE
-        evento = mi_log.make_event('envio', LINE, IP_SERVER, str(PORT_SERVER))
+        evento = mi_log.make_event('envio', LINE, IP_DEST, str(PORT_DEST))
         my_socket.send(LINE + '\r\n')
         data = my_socket.recv(1024)
-        evento = mi_log.make_event('recepcion', data, '', '')
         print "Recibido: " + data
+        evento = mi_log.make_event('recepcion', data, '', '')
     except socket.error:
-        descrip = "No server listening at " + IP_SERVER
-        descrip = descrip + " port " + str(PORT_SERVER)
-        evento = mi_log.make_event('error', descrip,'','')
+        descrip = "No server listening at " + IP_DEST
+        descrip = descrip + " port " + str(PORT_DEST)
+        evento = mi_log.make_event('error', descrip, '', '')
         print "Error: " + descrip
-        evento = mi_log.make_event('Finishing', '...','','')
+        evento = mi_log.make_event('Finishing', '...', '', '')
         raise SystemExit
 
     resp_data = data.split('\r\n')
@@ -240,11 +242,12 @@ if __name__ == "__main__":
         datos_audio = dicc_sdp['m'].split()
         if datos_audio[0] == 'audio':
             audio_prt = int(datos_audio[1])
-        
+
         #Enviamos ACK
         LINE2 = 'ACK sip:' + DIR_SIP + " " + VER
         print "Enviando: " + LINE2
         my_socket.send(LINE2 + '\r\n\r\n')
+        evento = mi_log.make_event('envio', LINE2, IP_SERVER, str(PORT_SERVER))
 
         #Enviamos audio
         os.system('chmod 755 mp32rtp')
@@ -253,7 +256,9 @@ if __name__ == "__main__":
         os.system(to_exe)
         accion = "Enviando audio a " + IP_SERVER + ':'
         accion += str(audio_prt)
-        print accion
+        evento = mi_log.make_event(accion, '', '', '')
+        print evento
+        print "Terminado envío de audio\r\n"
         data2 = my_socket.recv(1024)
         if data2 != "":
             print "Recibido: " + data2
@@ -262,7 +267,6 @@ if __name__ == "__main__":
     print "Terminando socket..."
 
     # Cerramos todo
-    evento = mi_log.make_event('Finishing', '...','','')
+    evento = mi_log.make_event('Finishing', '...', '', '')
     my_socket.close()
-    
     print "Fin."
