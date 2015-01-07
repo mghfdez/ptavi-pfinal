@@ -187,7 +187,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         IP_DEST = DICC_CLIENT[dir_dest][0]
                         PORT_DEST = DICC_CLIENT[dir_dest][1]
                     else:
-                        descrip = "Usuario no registrado"
+                        descrip = "SIP/2.0 404 Not Found\r\n\r\n"
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
@@ -201,23 +201,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                     emisor = dicc_sdp['o'].split()[0]
                     if emisor not in DICC_CLIENT.keys():
-                        descrip = "Emisor no registrado\r\n"
+                        descrip = "SIP/2.0 404 Not Found\r\n\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
                         self.wfile.write(evento)
-                        print evento
+                        print evento,
+                        print "Emisor no registrado"
                         break
-
-                    #Esta parte comprueba si el receptor es el mismo que
-                    # el emisor. Si es asi transmite un mensaje de error
-                    """
-                    if emisor == dir_dest:
-                        descrip = "La dirección de destino es la misma que la "
-                        descrip += "dirección de origen. (" + emisor + ")\r\n"
-                        evento = mi_log.make_event('error', descrip,'','')
-                        self.wfile.write(evento)
-                        print evento
-                        break
-                    """
 
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
