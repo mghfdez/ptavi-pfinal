@@ -187,7 +187,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         IP_DEST = DICC_CLIENT[dir_dest][0]
                         PORT_DEST = DICC_CLIENT[dir_dest][1]
                     else:
-                        descrip = "SIP/2.0 404 Not Found\r\n\r\n"
+                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
@@ -201,7 +201,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                     emisor = dicc_sdp['o'].split()[0]
                     if emisor not in DICC_CLIENT.keys():
-                        descrip = "SIP/2.0 404 Not Found\r\n\r\n"
+                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
                         self.wfile.write(evento)
                         print evento,
@@ -299,7 +299,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 else:
                     self.clean_dic()
                     self.register2file()
-                    descrip = "SIP/2.0 405 METHOD NOT ALLOWED\r\n\r\n"
+                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     self.wfile.write(descrip)
                     evento = mi_log.make_event('error', descrip, '', '')
             else:
