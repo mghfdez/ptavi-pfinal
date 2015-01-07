@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
-#Practica Final - Miguel Angel Fernandez Sanchez
+#Practica Final - Miguel - UAServer Angel Fernandez Sanchez
 """
 Clase (y programa principal) para un servidor SIP
 """
-# ¿Hay que copiar otra vez todo el parser? (Clase incluido?)
-# No, mejor importar la clase del cliente
+
 
 import SocketServer
 import socket
