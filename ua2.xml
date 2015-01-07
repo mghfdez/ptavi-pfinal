@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <account username = "seldom@astrofisica.com"/>
+    <uaserver ip = "127.0.0.1" puerto = "7666"/>
+    <rtpaudio puerto = "3334"/>
+    <regproxy ip = "127.0.0.1" puerto = "6666"/>
+    <log path = "log_ua2.txt" />
+    <audio path = "cancion.mp3" />
+</config>
