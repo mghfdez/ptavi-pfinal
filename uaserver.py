@@ -116,6 +116,10 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(resp)
                     evento = mi_log.make_event('envio', resp,
                                                ip_clnt, str(port_clnt))
+                    print evento
+                    evento = mi_log.make_event('error', resp,
+                                               "", "")
+                    print evento
                     break
 
                 evento = mi_log.make_event('recepcion', cadena,
@@ -168,11 +172,23 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     evento = mi_log.make_event(accion, "", "", "")
                     print "Terminado envío de audio\r\n"
 
-                else:
+                elif list_words[0] in meth_not_allowed:
                     resp = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     self.wfile.write(resp)
+                    evento = mi_log.make_event('error', descrip, "", "")
+                    print evento
                     evento = mi_log.make_event('envio', resp,
                                                ip_clnt, str(port_clnt))
+                    print evento
+
+                else:
+                    resp = "SIP/2.0 400 Bad Request\r\n\r\n"
+                    self.wfile.write(resp)
+                    evento = mi_log.make_event('error', descrip, "", "")
+                    print evento
+                    evento = mi_log.make_event('envio', resp,
+                                               ip_clnt, str(port_clnt))
+                    print evento
 
             # Si no hay más líneas salimos del bucle infinito
             else:
@@ -207,6 +223,7 @@ if __name__ == "__main__":
     RTP_INFO = {}
     dicc_sdp = {}
     mi_dir = datos_sesion['account_username']
+    meth_not_allowed = ['CANCEL', 'OPTIONS']
     try:
         PORT = int(datos_sesion['uaserver_puerto'])
     except ValueError:
