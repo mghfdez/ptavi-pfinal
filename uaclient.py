@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
 """
-IGNACIO ARRANZ ÁGUEDA - ISAM - PTAVI - PRACTICA FINAL
+IGNACIO ARRANZ ÁGUEDA - ISAM - PTAVI - PRACTICA FINAL - USERAGENG
 """
 
 import time
@@ -65,22 +65,25 @@ if __name__ == "__main__":
     parser.parse(open(fich))
 
 # Extraer campos del diccionario
-# ===============================
+# ================================================
 
 # UASERVER del USERAGENT, no del proxy
 UASERVER_IP = myHandler.elementos["uaserver_ip"]
 UASERVER_PORT = myHandler.elementos["uaserver_puerto"]
 
-# Puerto RTP al que se le enviará el tráfico
+# Puerto RTP al que se le enviará el tráfico RTP
 RTP_PORT = myHandler.elementos["rtpaudio_puerto"]
 
 NAME = myHandler.elementos["account_username"]
+PASS = myHandler.elementos["account_passwd"]
+
 LOG_CLIENT = myHandler.elementos["log_path"]
 
 # IP y PUERTO del proxy-registral
 PROXY_IP = myHandler.elementos["regproxy_ip"]
 PROXY_PORT = int(myHandler.elementos["regproxy_puerto"])
 
+# Parámetro que se pasa por línea de comandos:
 OPCION = sys.argv[3]
 
 if len(sys.argv) == 4:
@@ -92,6 +95,9 @@ if len(sys.argv) == 4:
         LINE = METODO + " sip:" + NAME + "@" + UASERVER_IP + ":" \
             + UASERVER_PORT + " SIP/2.0\r\n"
         LINE = LINE + "Expires: " + OPCION + "\r\n\r\n"
+
+        Start_log = "Starting..."
+        log_status(Start_log)
 
     elif METODO == "INVITE" and len(sys.argv) == 4:
         SDP = "v=0\r\n" + "o=" + NAME + "@" + UASERVER_IP + "\r\n" \
@@ -111,16 +117,13 @@ my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 my_socket.connect((UASERVER_IP, PROXY_PORT))
 
-Start_log = "Starting..."
-log_status(Start_log)
-
 # Envio de informacion
 print "Enviando: " + LINE
 my_socket.send(LINE)
 
 # Log
-Sent_log = "Sent to " + str(UASERVER_IP) + ":" \
-    + str(UASERVER_PORT) + " " + str(LINE.split("\r\n")[0])
+Sent_log = "Sent to " + str(PROXY_IP) + ":" \
+    + str(PROXY_PORT) + " " + str(LINE.split("\r\n")[0])
 log_status(Sent_log)
 
 
@@ -130,15 +133,18 @@ try:
     print 'MENSAJE DE ENTRADA'
     print "=================="
     print data
-    #Log
-    Answers = "200 OK [...]"
-    Recv_log = "Received from " + str(NAME) + ":" + str(UASERVER_PORT) \
-        + ":" + Answers
+
+    #LOG data 
+    Recv_log = "Received from " + str(PROXY_IP) + ":" + str(PROXY_PORT) \
+        + ":" + "SIP/2.0"
     log_status(Recv_log)
+
 except socket.error:
     fecha = time.strftime('%Y%m%d%h%M%S', time.gmtime(time.time()))
     print "Error: No server listening at", UASERVER_IP, "port", PROXY_PORT
     sys.exit()
+    Recv_log_error = "Error: No server listening at", UASERVER_IP, "port", PROXY_PORT
+    log_status(Recv_log)
 
 
 data = data.split("\r\n\r\n")
@@ -152,16 +158,23 @@ if data[0] == "SIP/2.0 100 Trying" and data[1] == "SIP/2.0 180 Ringing":
         print "Enviando Confirmacion: " + LINE
         my_socket.send(LINE + '\r\n')
 
-        rtp_port = saca_puerto_rtp(data[3])
-        print "RTP PORT ES: ", rtp_port
+        # LOG ACK
+        Ack_log = "Received from " + str(PROXY_IP) + ":" + str(PROXY_PORT)
+        log_status(Ack_log)
 
+
+        # ENVÍO DE TRÁFICO RTP
+        rtp_port = saca_puerto_rtp(data[3])
         OPCION = OPCION.split("@")[1]
+
+        Rtp_log = "Sent RTP to: " + str(OPCION) + str(rtp_port)
+        log_status(Rtp_log)
+
 
         print "Comienza la transmision........."
         Streaming = './mp32rtp -i ' + OPCION + " -p " + rtp_port
         Streaming += " < " + myHandler.elementos["audio_path"]
         os.system(Streaming)
-
         print "Fin de la emision"
 # Cerramos todo
 my_socket.close()
