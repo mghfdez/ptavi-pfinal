@@ -31,7 +31,7 @@ class UserXML(ContentHandler):
             dic["__name__"] = name  # añadimos el nombre de la etiqueta al dicc
             # buscamos atributo en self.etiquetas
             for atributo in self.etiquetas[name]:
-                dic[atributo] = attrs.get(atributo, "")
+                dic[atributo] = attrs.get(atributo, "") # obtenemos los valores del archivo del xml
             self.list.append(dic)
 
     def get_tags(self):
@@ -47,10 +47,10 @@ class UserXML(ContentHandler):
             for clave in diccionario.keys():
                 if clave != "__name__":
                     valorAtributo = diccionario[clave]
-                    self.listAtributos.append(valorAtributo)
+                    self.listAtributos.append(valorAtributo) # obtengo una lista de atributos
                 else:
                     etiqueta = diccionario[clave]
-            self.listEtiquetas.append(etiqueta)
+            self.listEtiquetas.append(etiqueta) # obtengo una lista de las etiquetas
 
     def get_Atributos(self):
         return self.listAtributos
