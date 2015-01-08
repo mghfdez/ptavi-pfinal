@@ -85,7 +85,7 @@ if __name__ == "__main__":
         sys.exit("Usage: python uaserver.py config")
 
     parser = make_parser()
-    cHandler = uaclient.UserXML() #llamo a la clase userxml de cliente
+    cHandler = uaclient.UserXML()  # llamo a la clase userxml de cliente
     parser.setContentHandler(cHandler)
     try:
         fichXML = sys.argv[1]
