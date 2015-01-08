@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
 """
-Clase (y programa principal) para un servidor proxy_registrar
+IGNACIO ARRANZ ÁGUEDA - ISAM - PTAVI - PRACTICA FINAL - PROXY_REGISTRAR
 """
 
 import SocketServer
@@ -122,10 +122,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     mensaje = line
                     line = line.split()
 
+# ========================= REGISTER ======================================
+
                     if line[0] == "REGISTER" and line[2] == "SIP/2.0":
 
                         Reg_log = "Received REGISTER from " + line[1] + ":" \
-                            + line[2] + ":" + "200 OK [...]"
+                            + line[2] + ":"
                         log_status(Reg_log)
 
                         line[1] = line[1].split(":")
@@ -158,8 +160,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                         if ("sip:" in line[1]) and \
                                 ("@" in line[1]) and line[2] == 'SIP/2.0':
-
-                            print "LINE vale =======> ", line[1][1]
 
                             line[1] = line[1].split(":")
                             print line
