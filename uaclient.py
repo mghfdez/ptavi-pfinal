@@ -11,16 +11,17 @@ from xml.sax.handler import ContentHandler
 
 # Clase para leer el fichero xml
 
+
 class UserXML(ContentHandler):
 
     def __init__(self):
 
         self.etiquetas = {"account": ["username", "passwd"],
-                        "uaserver": ["ip", "puerto"],
-                        "rtpaudio": ["puerto"],
-                        "regproxy": ["ip", "puerto"],
-                        "log": ["path"],
-                        "audio": ["path"]}
+                          "uaserver": ["ip", "puerto"],
+                          "rtpaudio": ["puerto"],
+                          "regproxy": ["ip", "puerto"],
+                          "log": ["path"],
+                          "audio": ["path"]}
         self.list = []
         self.listEtiquetas = []
         self.listAtributos = []
@@ -31,7 +32,8 @@ class UserXML(ContentHandler):
             dic["__name__"] = name  # añadimos el nombre de la etiqueta al dicc
             # buscamos atributo en self.etiquetas
             for atributo in self.etiquetas[name]:
-                dic[atributo] = attrs.get(atributo, "") # obtenemos los valores del archivo del xml
+                # obtenemos los valores del archivo del xml
+                dic[atributo] = attrs.get(atributo, "")
             self.list.append(dic)
 
     def get_tags(self):
@@ -47,10 +49,12 @@ class UserXML(ContentHandler):
             for clave in diccionario.keys():
                 if clave != "__name__":
                     valorAtributo = diccionario[clave]
-                    self.listAtributos.append(valorAtributo) # obtengo una lista de atributos
+                    # obtengo una lista de atributos
+                    self.listAtributos.append(valorAtributo)
                 else:
                     etiqueta = diccionario[clave]
-            self.listEtiquetas.append(etiqueta) # obtengo una lista de las etiquetas
+            # obtengo una lista de las etiquetas
+            self.listEtiquetas.append(etiqueta)
 
     def get_Atributos(self):
         return self.listAtributos
@@ -58,12 +62,14 @@ class UserXML(ContentHandler):
     def get_Etiquetas(self):
         return self.listEtiquetas
 
+
 #imprime por pantalla, escribe en el log y envia el mensaje
 def enviar_msg(text, fich):
     print "Enviando: " + text
     line = "Send to: " + proxyIp + ":" + str(proxyPort) + ": " + text
     escribir_log(line, fich)
     my_socket.send(text + '\r\n\r\n')
+
 
 #recibe en el buffer los mensajes con los codigos de respuesta
 def rcv_data(fich):
@@ -76,25 +82,29 @@ def rcv_data(fich):
     escribir_log(textLog, fich)
     return dataRcv
 
+
 #termina la ejcución del cliente
 def fin_socket(bye, fich):
     print "Terminando socket..."
-    if (bye == True):
+    if bye is True:
         text = "Finishing."
         escribir_log(text, fich)
     my_socket.close()
     print "Fin."
 
+
 #excepcion por introducir parametros incorrectos
 def error_usage():
     sys.exit("Usage: python uaclient.py config metodo opcion")
 
-#no encuentra el servidor 
+
+#no encuentra el servidor
 def error_server(fich):
     text = "Error: no server listening at " + proxyIp
     text = text + " port " + str(proxyPort)
     escribir_log(text, fich)
     sys.exit(text)
+
 
 #escribe en el log
 def escribir_log(text, fich):
@@ -192,8 +202,3 @@ if __name__ == "__main__":
                 escribir_log(textLog, fichLog)
                 esBye = True
                 fin_socket(esBye, fichLog)
-
-
-
-
-
