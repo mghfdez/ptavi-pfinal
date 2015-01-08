@@ -19,8 +19,8 @@ class ProxyXML(ContentHandler):
     def __init__(self):
 
         self.etiquetas = {"server": ["name", "ip", "puerto"],
-                        "database": ["path"],
-                        "log": ["path"]}
+                          "database": ["path"],
+                          "log": ["path"]}
         self.list = []
         self.listEtiquetas = []
         self.listAtributos = []
@@ -104,7 +104,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                             del self.dic[element]
                         self.register2file()
                         delList = []
-                        if borrado == True:
+                        if borrado is True:
                             message = "SIP/2.0 200 OK"
                             self.wfile.write(message + "\r\n\r\n")
                             textLog = "Send to: " + proxyIp + ":"
@@ -128,14 +128,14 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         uaclient.escribir_log(textLog, fichLog)
                 user_encontrado = False
                 if (method == "INVITE") or (method == "BYE") \
-                    or (method == "ACK"):
+                   or (method == "ACK"):
                     # vemos si esta en el diccionario el usuario receptor.
                     for element in self.dic:
                         if userName == element:
                             receptorIp = self.dic[element][0]
                             receptorPort = self.dic[element][1]
                             user_encontrado = True
-                    if (user_encontrado == False):
+                    if user_encontrado is False:
                         line = "SIP/2.0 404 User Not Found"
                         self.wfile.write(line + "\r\n\r\n")
             else:
@@ -145,7 +145,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 textLog = textLog + str(proxyPort) + ": " + message
                 uaclient.escribir_log(textLog, fichLog)
 
-            if (user_encontrado == True):
+            if user_encontrado is True:
                 # Nos conectamos al cliente para reenviarle los datos
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -164,10 +164,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(dataRcv)
             if not line:
                 break
+
     # opero sobre el fichero que contiene la lista de usuarios registrados
     def register2file(self):
         fich = open(fichUserReg, 'w')
-        fich.write('user' + '\t' + 'ip' + '\t' + 'port' + '\t' + 'expire' + '\n')
+        fich.write('user' + '\t' + 'ip' + '\t'
+                   + 'port' + '\t' + 'expire' + '\n')
         for clave in self.dic:
             userDir = clave
             ip = self.dic[clave][0]
@@ -202,5 +204,6 @@ if __name__ == "__main__":
     proxy = SocketServer.UDPServer(("", int(proxyPort)), SIPRegisterHandler)
     print "Server " + nameProxy + " listening at port " + proxyPort + " ..."
     line = "Starting..."
-    uaclient.escribir_log(line, fichLog) #llamamos al metodo que hay en el cliente
+    #llamamos al metodo que hay en el cliente
+    uaclient.escribir_log(line, fichLog)
     proxy.serve_forever()
