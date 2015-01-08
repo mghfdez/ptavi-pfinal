@@ -164,10 +164,10 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(dataRcv)
             if not line:
                 break
-
+    # opero sobre el fichero que contiene la lista de usuarios registrados
     def register2file(self):
-        fich = open('registered.txt', 'w')
-        fich.write('user' + '\t' + 'ip' + '\t' + 'port' + '\t' + 'expire')
+        fich = open(fichUserReg, 'w')
+        fich.write('user' + '\t' + 'ip' + '\t' + 'port' + '\t' + 'expire' + '\n')
         for clave in self.dic:
             userDir = clave
             ip = self.dic[clave][0]
@@ -195,8 +195,6 @@ if __name__ == "__main__":
 
     proxyPort = listaAtrb[0]
     proxyIp = listaAtrb[2]
-    #if proxyIp == 'localhost':
-    #    proxyIp = "127.0.0.1"
     nameProxy = listaAtrb[1]
     fichUserReg = listaAtrb[3]
     fichLog = listaAtrb[4]
