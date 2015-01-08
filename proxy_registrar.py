@@ -156,6 +156,9 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
+                        evento = mi_log.make_event('envio', descrip,
+                                                   dir_ip, dir_port_s)
+                        print evento
                         break
                     reg_time = time.time()
                     exp_sec = exp_time + reg_time
@@ -191,6 +194,9 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
+                        evento = mi_log.make_event('envio', descrip,
+                                                   dir_ip, dir_port_s)
+                        print evento
                         break
 
                     for linea_pet in lista_cadena:
@@ -203,9 +209,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     if emisor not in DICC_CLIENT.keys():
                         descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
-                        self.wfile.write(evento)
                         print evento,
                         print "Emisor no registrado"
+                        self.wfile.write(evento)
+                        evento = mi_log.make_event('envio', descrip,
+                                                   dir_ip, dir_port_s)
+                        print evento
                         break
 
                     mi_socket = socket.socket(socket.AF_INET,
@@ -296,12 +305,26 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         self.wfile.write(evento)
                         break
+
+                elif list_words[0] in meth_not_allowed:
+                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
+                    self.wfile.write(descrip)
+                    evento = mi_log.make_event('error', descrip, "", "")
+                    print evento
+                    evento = mi_log.make_event('envio', descrip,
+                                               dir_ip, dir_port_s)
+                    print evento
                 else:
                     self.clean_dic()
                     self.register2file()
-                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
+                    descrip = "SIP/2.0 400 Bad Request\r\n\r\n"
                     self.wfile.write(descrip)
-                    evento = mi_log.make_event('error', descrip, '', '')
+                    evento = mi_log.make_event('error', descrip, "", "")
+                    print evento
+                    evento = mi_log.make_event('envio', descrip,
+                                               dir_ip, dir_port_s)
+                    print evento
+
             else:
                 break
 
@@ -310,6 +333,7 @@ if __name__ == "__main__":
     usage = "Usage: python proxy_registrar.py config"
     server_data = sys.argv
     mi_serv = ""
+    meth_not_allowed = ['CANCEL', 'OPTIONS']
 
     if len(server_data) != 2:
         print usage
