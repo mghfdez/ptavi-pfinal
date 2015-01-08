@@ -94,7 +94,6 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                                 ip_destino =line[1][1].split("@")[1]
                                 port_rtp_dic[ip_destino] = line[-2]
 
-                                print "line[1][1] VALE ¿¿?¿¿?¿?¿?¿?¿¿", line[1][1]
                                 # Se forma el SPD
                                 NAME = line[6].split("=")[1]
                                 RTP_PORT = myHandler.elementos["rtpaudio_puerto"]
@@ -138,11 +137,6 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
 # =============================== BYE ===========================
                             elif METODO == "BYE":
-
-                                print
-                                print
-                                print "A veeeeer, line[1][1] vale: ", line[1][1]
-
                                 Bye_log = "Received BYE from " + \
                                     client_address + ":" + "200 OK [...]"
                                 log_status(Bye_log)
@@ -162,7 +156,6 @@ if __name__ == "__main__":
     myHandler = XMLHandler()
     parser.setContentHandler(myHandler)
     parser.parse(open(fich))
-    #print myHandler.get_tags()
 
     # Extraer campos del diccionario
     LOG_SERVER = myHandler.elementos["log_path"]
