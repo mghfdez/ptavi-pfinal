@@ -130,16 +130,9 @@ if __name__ == "__main__":
     password = listaAtrb[1]
     serverPort = listaAtrb[2]
     serverIp = listaAtrb[3]
-    #if "ip" in listaEtq:
-    #    if (serverIp == 'localhost'):
-    #        serverIp = "127.0.0.1"
-    #else:
-    #    serverIp = "127.0.0.1"
     rtpPort = listaAtrb[4]
     proxyPort = listaAtrb[5]
     proxyIp = listaAtrb[6]
-    #if proxyIp == 'localhost':
-    #    proxyIp = "127.0.0.1"
     fichLog = listaAtrb[7]
     fichRtp = listaAtrb[8]
 
@@ -183,7 +176,7 @@ if __name__ == "__main__":
                         method = "ACK"
                         line = method + " sip:" + receptor + " SIP/2.0"
                         enviar_msg(line, fichLog)
-                        aEjecutar = 'mp32rtp -i ' + receptor_rptIp + ' -p '
+                        aEjecutar = './mp32rtp -i ' + receptor_rptIp + ' -p '
                         aEjecutar = aEjecutar + receptor_rtpPort + ' < '
                         aEjecutar = aEjecutar + fichRtp
                         print "Vamos a ejecutar", aEjecutar
