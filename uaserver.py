@@ -85,7 +85,7 @@ if __name__ == "__main__":
         sys.exit("Usage: python uaserver.py config")
 
     parser = make_parser()
-    cHandler = uaclient.UserXML() #llamo a la clase userxmal de cliente
+    cHandler = uaclient.UserXML() #llamo a la clase userxml de cliente
     parser.setContentHandler(cHandler)
     try:
         fichXML = sys.argv[1]
@@ -101,13 +101,9 @@ if __name__ == "__main__":
     password = listaAtrb[1]
     serverPort = listaAtrb[2]
     serverIp = listaAtrb[3]
-    #if (serverIp == 'localhost'):
-    #    serverIp = "127.0.0.1"
     rtpPort = listaAtrb[4]
     proxyPort = listaAtrb[5]
     proxyIp = listaAtrb[6]
-    #if proxyIp == 'localhost':
-    #    proxyIp = "127.0.0.1"
     fichLog = listaAtrb[7]
     fichRtp = listaAtrb[8]
 
