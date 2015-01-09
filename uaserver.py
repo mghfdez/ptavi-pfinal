@@ -259,6 +259,7 @@ if __name__ == "__main__":
         print usage
         raise SystemExit
     try:
+        #Dejamos el servidor escuchando
         serv = SocketServer.UDPServer((IP, PORT), SIPHandler)
         print "Listening..."
         serv.serve_forever()
