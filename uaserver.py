@@ -159,6 +159,15 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     resp += IP + "\r\n" + "s=KnockKnockKnockPenny"
                     resp += "\r\n" + "t=0" + "\r\n" + "m=audio "
                     resp += str(audio_port) + " RTP" + "\r\n\r\n"
+
+                    #Dejamos ejecutando cvlc
+                    to_exe1 = "cvlc rtp://"
+                    to_exe1 += IP + ':' + str(audio_port) + ' 2> /dev/null &'
+                    print "Ejecutando cvlc..."
+                    print to_exe1
+                    os.system(to_exe1)
+
+                    #Enviamos respuesta
                     print "Enviando respuesta (200 OK + SDP)..."
                     self.wfile.write(resp)
                     evento = mi_log.make_event('envio', resp,
@@ -175,12 +184,12 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     ip_send = dicc_sdp['o'].split()[1]
                     audio_prt = rtp_info['rtp_port']
                     os.system('chmod 755 mp32rtp')
-                    to_exe = './mp32rtp -i ' + ip_send
-                    to_exe += ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+                    to_exe2 = './mp32rtp -i ' + ip_send
+                    to_exe2 += ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
                     accion = "Enviando audio a " + ip_send + ':'
                     accion += str(audio_prt)
                     print accion
-                    os.system(to_exe)
+                    os.system(to_exe2)
                     evento = mi_log.make_event(accion, "", "", "")
                     print "Terminado envío de audio\r\n"
 
