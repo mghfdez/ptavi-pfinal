@@ -102,6 +102,32 @@ def add_proxy_header(cadena, ip, puerto):
     return cadena
 
 
+def recuperar_users(fich_path):
+    dicc = {}
+    fich = open(fich_path, 'r')
+    usuarios = fich.readlines()
+    if usuarios != "":
+        usuarios = usuarios[1:]
+    fich.close()
+    try:
+        for usuario in usuarios:
+            if usuario != "":
+                usuario = usuario.split('\t')
+                try:
+                    usuario[2] = int(usuario[2])
+                    usuario[3] = float(usuario[3])
+                    usuario[4] = usuario[4][:-2]
+                    usuario[4] = float(usuario[4])
+                except ValueError:
+                    print "Error al leer fichero de usuarios"
+                    break
+                list_data = [usuario[1], usuario[2], usuario[3], usuario[4]]
+                dicc[usuario[0]] = list_data
+    except IndexError:
+        print "Error al leer fichero de usuarios"
+    return dicc
+
+
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
     Clase Registrar-SIP
@@ -470,8 +496,8 @@ if __name__ == "__main__":
     IP = datos_sesion['server_ip']
     PORT = int(datos_sesion['server_puerto'])
     server_name = datos_sesion['server_name']
-    dicc_client = {}
     name_database = datos_sesion['database_path']
+    dicc_client = recuperar_users(name_database)
     user_dir = ""
     user_port = 0
     dir_dest = ""
