@@ -94,6 +94,7 @@ def check_request(lista):
         print "500 Server Internal Error"
         return 0
 
+
 def add_proxy_header(cadena, ip, puerto):
     #Añade una cabecera Proxy a la cadena de texto especificada
     cadena += "Via: SIP/2.0/UDP " + ip + ':' + str(puerto) + ';rport;'
@@ -163,7 +164,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
                         descrip = add_proxy_header(descrip, IP, PORT)
-                        self.wfile.write(descrip) 
+                        self.wfile.write(descrip)
                         evento = mi_log.make_event('envio', descrip,
                                                    dir_ip, dir_port_s)
                         print evento
