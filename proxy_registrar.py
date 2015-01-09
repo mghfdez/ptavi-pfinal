@@ -494,7 +494,18 @@ if __name__ == "__main__":
         raise SystemExit
 
     IP = datos_sesion['server_ip']
-    PORT = int(datos_sesion['server_puerto'])
+    if not uaclient.check_ip(IP):
+        print "IP incorrecta en el fichero xml"
+        print usage
+        raise SystemExit
+
+    try:
+        PORT = int(datos_sesion['server_puerto'])
+    except ValueError:
+        print "Puerto incorrecto en el fichero xml"
+        print usage
+        raise SystemExit
+
     server_name = datos_sesion['server_name']
     name_database = datos_sesion['database_path']
     dicc_client = recuperar_users(name_database)
