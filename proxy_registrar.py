@@ -96,13 +96,17 @@ def check_request(lista):
 
 
 def add_proxy_header(cadena, ip, puerto):
-    #Añade una cabecera Proxy a la cadena de texto especificada
+    """Añade una cabecera Proxy a la cadena de texto especificada"""
+
     cadena += "Via: SIP/2.0/UDP " + ip + ':' + str(puerto) + ';rport;'
     cadena += 'branch=' + str(num_rand) + '\r\n\r\n'
     return cadena
 
 
 def recuperar_users(fich_path):
+    """Recupera los usuarios previamente registrados y los guarda en
+       un diccionario"""
+
     dicc = {}
     fich = open(fich_path, 'r')
     usuarios = fich.readlines()
@@ -182,10 +186,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 if list_words[0] == 'REGISTER':
                     correo = list_words[1]
                     user_dir = correo.split(":")[1]
+                    #Compruebo que los datos recibidos son correctos
                     try:
                         exp_time = int(list_words[4])
                         user_port = int(correo.split(":")[2])
                     except ValueError:
+                        #Mando mensaje de error
                         descrip = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
@@ -226,10 +232,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     peticion = lista_cadena[0].split()
                     dir_dest = peticion[1].split(":")[1]
 
+                    #Compruebo si el usuario esta registrado
                     if dir_dest in dicc_client.keys():
                         ip_dest = dicc_client[dir_dest][0]
                         port_dest = dicc_client[dir_dest][1]
                     else:
+                        #Envio mensaje de error
                         descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         descrip = add_proxy_header(descrip, IP, PORT)
                         self.wfile.write(descrip)
@@ -240,6 +248,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Compruebo que la IP es correcta
                     if not uaclient.check_ip(ip_dest):
                         resp = "SIP/2.0 400 Bad Request\r\n\r\n"
                         evento = mi_log.make_event('error', resp, "", "")
@@ -251,6 +260,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
@@ -270,6 +280,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                             if len(datos) == 2:
                                 dicc_sdp[datos[0]] = datos[1]
 
+                    #Saco los datos del SDP y los compruebo
                     emisor = dicc_sdp['o'].split()[0]
                     ip_emisor = dicc_sdp['o'].split()[1]
                     if not uaclient.check_ip(ip_emisor):
@@ -283,6 +294,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Compruebo que el emisor esta registrado
                     if emisor not in dicc_client.keys():
                         descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         descrip = add_proxy_header(descrip, IP, PORT)
@@ -296,6 +308,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Abro un socket y reenvio el mensaje
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
@@ -336,6 +349,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     ip_dest = dicc_client[dir_dest][0]
                     port_dest = dicc_client[dir_dest][1]
 
+                    #Compruebo la direccion IP
                     if not uaclient.check_ip(ip_dest):
                         resp = "SIP/2.0 400 Bad Request\r\n\r\n"
                         evento = mi_log.make_event('error', resp, "", "")
@@ -347,6 +361,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
@@ -360,6 +375,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Abro un socket y reenvio el mensaje
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
@@ -386,6 +402,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     ip_dest = dicc_client[dir_dest][0]
                     port_dest = dicc_client[dir_dest][1]
 
+                    #Compruebo direccion IP
                     if not uaclient.check_ip(ip_dest):
                         resp = "SIP/2.0 400 Bad Request\r\n\r\n"
                         evento = mi_log.make_event('error', resp, "", "")
@@ -397,6 +414,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
@@ -410,6 +428,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print evento
                         break
 
+                    #Abro un socket y reenvio el mensaje
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
@@ -438,6 +457,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         break
 
                 elif list_words[0] in meth_not_allowed:
+                    #Si se recibe un metodo conocido pero no válido
                     descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     evento = mi_log.make_event('error', descrip, "", "")
                     descrip = add_proxy_header(descrip, IP, PORT)
@@ -448,6 +468,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(descrip)
                     print evento
                 else:
+                    #Si ocurre un error de otro tipo
                     self.clean_dic()
                     self.register2file()
                     descrip = "SIP/2.0 400 Bad Request\r\n\r\n"
@@ -515,6 +536,7 @@ if __name__ == "__main__":
     datos_dest = []
     dicc_sdp = {}
     rtp_info = {}
+
     # Creamos servidor SIP y escuchamos
     serv = SocketServer.UDPServer((IP, PORT), SIPRegisterHandler)
     print "Lanzando servidor UDP de SIP...\r\n"
