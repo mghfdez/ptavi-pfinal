@@ -117,8 +117,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     evento = mi_log.make_event('envio', resp,
                                                ip_clnt, str(port_clnt))
                     print evento
-                    evento = mi_log.make_event('error', resp,
-                                               "", "")
+                    evento = mi_log.make_event('error', resp, "", "")
                     print evento
                     break
 
@@ -136,8 +135,20 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                                 dicc_sdp[datos[0]] = datos[1]
 
                     datos_audio = dicc_sdp['m'].split()
+
                     if datos_audio[0] == 'audio':
                         rtp_info['rtp_port'] = int(datos_audio[1])
+
+                    ip_send = dicc_sdp['o'].split()[1]
+                    if not uaclient.check_ip(ip_send):
+                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        self.wfile.write(resp)
+                        evento = mi_log.make_event('envio', resp,
+                                                   ip_clnt, str(port_clnt))
+                        print evento
+                        evento = mi_log.make_event('error', resp, "", "")
+                        print evento
+                        break
 
                     correo = list_words[1].split(":")[1]
                     resp = "SIP/2.0 100 Trying\r\n\r\n"
@@ -161,11 +172,12 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                                                ip_clnt, str(port_clnt))
 
                 elif list_words[0] == "ACK":
+                    ip_send = dicc_sdp['o'].split()[1]
                     audio_prt = rtp_info['rtp_port']
                     os.system('chmod 755 mp32rtp')
-                    to_exe = './mp32rtp -i ' + ip_clnt
+                    to_exe = './mp32rtp -i ' + ip_send
                     to_exe += ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
-                    accion = "Enviando audio a " + ip_clnt + ':'
+                    accion = "Enviando audio a " + ip_send + ':'
                     accion += str(audio_prt)
                     print accion
                     os.system(to_exe)
@@ -222,6 +234,7 @@ if __name__ == "__main__":
     IP = datos_sesion['uaserver_ip']
     rtp_info = {}
     dicc_sdp = {}
+    ip_send = ""
     mi_dir = datos_sesion['account_username']
     meth_not_allowed = ['CANCEL', 'OPTIONS']
     try:
