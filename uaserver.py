@@ -137,7 +137,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
 
                     datos_audio = dicc_sdp['m'].split()
                     if datos_audio[0] == 'audio':
-                        RTP_INFO['rtp_port'] = int(datos_audio[1])
+                        rtp_info['rtp_port'] = int(datos_audio[1])
 
                     correo = list_words[1].split(":")[1]
                     resp = "SIP/2.0 100 Trying\r\n\r\n"
@@ -161,7 +161,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                                                ip_clnt, str(port_clnt))
 
                 elif list_words[0] == "ACK":
-                    audio_prt = RTP_INFO['rtp_port']
+                    audio_prt = rtp_info['rtp_port']
                     os.system('chmod 755 mp32rtp')
                     to_exe = './mp32rtp -i ' + ip_clnt
                     to_exe += ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     mi_log = uaclient.LogConfig(log_path)
     evento = mi_log.make_event('Listening', '...', '', '')
     IP = datos_sesion['uaserver_ip']
-    RTP_INFO = {}
+    rtp_info = {}
     dicc_sdp = {}
     mi_dir = datos_sesion['account_username']
     meth_not_allowed = ['CANCEL', 'OPTIONS']
