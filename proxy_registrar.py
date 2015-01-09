@@ -159,7 +159,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         exp_time = int(list_words[4])
                         user_port = int(correo.split(":")[2])
                     except ValueError:
-                        descrip = "SIP/2.0 400 BAD REQUEST\r\n"
+                        descrip = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
                         descrip = add_proxy_header(descrip, IP, PORT)
@@ -178,7 +178,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     print "AÑADIDO cliente " + user_dir
                     print dicc_client[user_dir]
                     print "Expira en: " + str(exp_time) + " seg.\r\n"
-                    resp = "SIP/2.0 200 OK\r\n"
+                    resp = "SIP/2.0 200 OK\r\n\r\n"
                     resp = add_proxy_header(resp, IP, PORT)
                     self.wfile.write(resp)
                     evento = mi_log.make_event('envio', resp,
@@ -188,7 +188,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         print "DADO DE BAJA cliente " + user_dir + '\n'
                         del dicc_client[user_dir]
                         self.register2file()
-                        resp = "SIP/2.0 200 OK\r\n"
+                        resp = "SIP/2.0 200 OK\r\n\r\n"
                         resp = add_proxy_header(resp, IP, PORT)
                         self.wfile.write(resp)
                         evento = mi_log.make_event('envio', resp,
@@ -203,7 +203,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         ip_dest = dicc_client[dir_dest][0]
                         port_dest = dicc_client[dir_dest][1]
                     else:
-                        descrip = "SIP/2.0 404 User Not Found\r\n"
+                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         descrip = add_proxy_header(descrip, IP, PORT)
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
@@ -221,7 +221,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                     emisor = dicc_sdp['o'].split()[0]
                     if emisor not in dicc_client.keys():
-                        descrip = "SIP/2.0 404 User Not Found\r\n"
+                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
                         descrip = add_proxy_header(descrip, IP, PORT)
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
@@ -327,7 +327,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         break
 
                 elif list_words[0] in meth_not_allowed:
-                    descrip = "SIP/2.0 405 Method Not Allowed\r\n"
+                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                     evento = mi_log.make_event('error', descrip, "", "")
                     descrip = add_proxy_header(descrip, IP, PORT)
                     print evento
@@ -339,7 +339,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 else:
                     self.clean_dic()
                     self.register2file()
-                    descrip = "SIP/2.0 400 Bad Request\r\n"
+                    descrip = "SIP/2.0 400 Bad Request\r\n\r\n"
 
                     evento = mi_log.make_event('error', descrip, "", "")
                     print evento
