@@ -15,6 +15,7 @@ import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import uaclient
+import random
 
 
 class SIPConfigHandler(ContentHandler):
@@ -93,6 +94,12 @@ def check_request(lista):
         print "500 Server Internal Error"
         return 0
 
+def add_proxy_header(cadena, ip, puerto):
+    #Añade una cabecera Proxy a la cadena de texto especificada
+    cadena += "Via: SIP/2.0/UDP " + ip + ':' + str(puerto) + ';rport;'
+    cadena += 'branch=' + str(num_rand) + '\r\n\r\n'
+    return cadena
+
 
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
@@ -103,10 +110,10 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         Limpia el diccionario de usuarios con plazo expirado
         """
         time_now = time.time()
-        for user in DICC_CLIENT.keys():
-            if DICC_CLIENT[user][3] < time_now:
+        for user in dicc_client.keys():
+            if dicc_client[user][3] < time_now:
                 print "BORRADO cliente " + user + " (Plazo expirado)"
-                del DICC_CLIENT[user]
+                del dicc_client[user]
 
     def register2file(self):
         """
@@ -116,11 +123,11 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         fich = open(name_database, 'w')
         first_line = "User \t IP \t Port \t RegisterDate \t Expires\r\n"
         fich.write(first_line)
-        for user in DICC_CLIENT.keys():
-            host = DICC_CLIENT[user][0]
-            port = DICC_CLIENT[user][1]
-            reg_date = DICC_CLIENT[user][2]
-            seg_exp = DICC_CLIENT[user][3]
+        for user in dicc_client.keys():
+            host = dicc_client[user][0]
+            port = dicc_client[user][1]
+            reg_date = dicc_client[user][2]
+            seg_exp = dicc_client[user][3]
             str_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(seg_exp))
             texto = user + '\t' + host + '\t' + str(port)
             texto += '\t' + str(reg_date) + '\t' + str(seg_exp) + '\r\n'
@@ -152,45 +159,52 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         exp_time = int(list_words[4])
                         user_port = int(correo.split(":")[2])
                     except ValueError:
-                        descrip = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
-                        self.wfile.write(descrip)
+                        descrip = "SIP/2.0 400 BAD REQUEST\r\n"
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
+                        descrip = add_proxy_header(descrip, IP, PORT)
+                        self.wfile.write(descrip) 
                         evento = mi_log.make_event('envio', descrip,
                                                    dir_ip, dir_port_s)
                         print evento
                         break
+
                     reg_time = time.time()
                     exp_sec = exp_time + reg_time
-                    DICC_CLIENT[user_dir] = [dir_ip, user_port,
+                    dicc_client[user_dir] = [dir_ip, user_port,
                                              reg_time, exp_sec]
 
                     self.register2file()
                     print "AÑADIDO cliente " + user_dir
-                    print DICC_CLIENT[user_dir]
+                    print dicc_client[user_dir]
                     print "Expira en: " + str(exp_time) + " seg.\r\n"
-                    self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
-                    evento = mi_log.make_event('envio', cadena,
-                                               dir_ip, str(user_port))
+                    resp = "SIP/2.0 200 OK\r\n"
+                    resp = add_proxy_header(resp, IP, PORT)
+                    self.wfile.write(resp)
+                    evento = mi_log.make_event('envio', resp,
+                                               dir_ip, dir_port_s)
 
                     if exp_time == 0:  # Damos de baja al cliente
                         print "DADO DE BAJA cliente " + user_dir + '\n'
-                        del DICC_CLIENT[user_dir]
+                        del dicc_client[user_dir]
                         self.register2file()
-                        evento = mi_log.make_event('envio', cadena,
-                                                   dir_ip, str(user_port))
-                        self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
+                        resp = "SIP/2.0 200 OK\r\n"
+                        resp = add_proxy_header(resp, IP, PORT)
+                        self.wfile.write(resp)
+                        evento = mi_log.make_event('envio', resp,
+                                                   dir_ip, dir_port_s)
 
                 elif list_words[0] == 'INVITE':
                     lista_cadena = cadena.split('\r\n')
                     peticion = lista_cadena[0].split()
                     dir_dest = peticion[1].split(":")[1]
 
-                    if dir_dest in DICC_CLIENT.keys():
-                        IP_DEST = DICC_CLIENT[dir_dest][0]
-                        PORT_DEST = DICC_CLIENT[dir_dest][1]
+                    if dir_dest in dicc_client.keys():
+                        ip_dest = dicc_client[dir_dest][0]
+                        port_dest = dicc_client[dir_dest][1]
                     else:
-                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
+                        descrip = "SIP/2.0 404 User Not Found\r\n"
+                        descrip = add_proxy_header(descrip, IP, PORT)
                         self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
@@ -206,8 +220,10 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                                 dicc_sdp[datos[0]] = datos[1]
 
                     emisor = dicc_sdp['o'].split()[0]
-                    if emisor not in DICC_CLIENT.keys():
-                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
+                    if emisor not in dicc_client.keys():
+                        descrip = "SIP/2.0 404 User Not Found\r\n"
+                        descrip = add_proxy_header(descrip, IP, PORT)
+                        self.wfile.write(descrip)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento,
                         print "Emisor no registrado"
@@ -221,29 +237,30 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
                                          socket.SO_REUSEADDR, 1)
-                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    mi_socket.connect((ip_dest, port_dest))
                     try:
                         print 'Reenviando a ' + dir_dest
+                        cadena = add_proxy_header(cadena, IP, PORT)
                         evento = mi_log.make_event('envio', cadena,
-                                                   IP_DEST, str(PORT_DEST))
+                                                   ip_dest, str(port_dest))
                         mi_socket.send(cadena)
                         data = mi_socket.recv(1024)
                         print "Recibido: " + data
                         evento = mi_log.make_event('recepcion', data,
-                                                   IP_DEST, str(PORT_DEST))
+                                                   ip_dest, str(port_dest))
 
-                        emisor_ip = DICC_CLIENT[emisor][0]
-                        emisor_port = str(DICC_CLIENT[emisor][1])
+                        emisor_ip = dicc_client[emisor][0]
+                        emisor_port = str(dicc_client[emisor][1])
                         print "Reenviando respuesta a " + str(dicc_sdp['o']),
                         print emisor_port
+                        data = add_proxy_header(data, IP, PORT)
                         self.wfile.write(data)
-
-                        evento = mi_log.make_event('envio', cadena,
-                                                   emisor_ip, emisor_port)
+                        evento = mi_log.make_event('envio', data,
+                                                   dir_ip, dir_port_s)
                         print evento
                     except socket.error:
-                        descrip = "No server listening at " + IP_DEST
-                        descrip = descrip + " port " + str(PORT_DEST)
+                        descrip = "No server listening at " + ip_dest
+                        descrip = descrip + " port " + str(port_dest)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
                         self.wfile.write(evento)
@@ -253,22 +270,23 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     lista_cadena = cadena.split('\r\n')
                     peticion = lista_cadena[0].split()
                     dir_dest = peticion[1].split(":")[1]
-                    IP_DEST = DICC_CLIENT[dir_dest][0]
-                    PORT_DEST = DICC_CLIENT[dir_dest][1]
+                    ip_dest = dicc_client[dir_dest][0]
+                    port_dest = dicc_client[dir_dest][1]
 
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
                                          socket.SO_REUSEADDR, 1)
-                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    mi_socket.connect((ip_dest, port_dest))
                     try:
                         print 'Reenviando a ' + dir_dest
+                        cadena = add_proxy_header(cadena, IP, PORT)
                         evento = mi_log.make_event('envio', cadena,
-                                                   IP_DEST, str(PORT_DEST))
+                                                   ip_dest, str(port_dest))
                         mi_socket.send(cadena)
                     except socket.error:
-                        descrip = "No server listening at " + IP_DEST
-                        descrip = descrip + " port " + str(PORT_DEST)
+                        descrip = "No server listening at " + ip_dest
+                        descrip = descrip + " port " + str(port_dest)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
                         self.wfile.write(evento)
@@ -278,51 +296,57 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     lista_cadena = cadena.split('\r\n')
                     peticion = lista_cadena[0].split()
                     dir_dest = peticion[1].split(":")[1]
-                    IP_DEST = DICC_CLIENT[dir_dest][0]
-                    PORT_DEST = DICC_CLIENT[dir_dest][1]
+                    ip_dest = dicc_client[dir_dest][0]
+                    port_dest = dicc_client[dir_dest][1]
 
                     mi_socket = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM)
                     mi_socket.setsockopt(socket.SOL_SOCKET,
                                          socket.SO_REUSEADDR, 1)
-                    mi_socket.connect((IP_DEST, PORT_DEST))
+                    mi_socket.connect((ip_dest, port_dest))
                     try:
                         print 'Reenviando a ' + dir_dest
+                        cadena = add_proxy_header(cadena, IP, PORT)
                         evento = mi_log.make_event('envio', cadena,
-                                                   IP_DEST, str(PORT_DEST))
+                                                   ip_dest, str(port_dest))
                         mi_socket.send(cadena)
                         data = mi_socket.recv(1024)
                         print "Recibido: " + data
                         evento = mi_log.make_event('recepcion', data,
-                                                   IP_DEST, str(PORT_DEST))
+                                                   ip_dest, str(port_dest))
                         print "Reenviando respuesta..."
+                        data = add_proxy_header(data, IP, PORT)
                         self.wfile.write(data)
                         evento = mi_log.make_event('envio', data, "", "")
                     except socket.error:
-                        descrip = "No server listening at " + IP_DEST
-                        descrip = descrip + " port " + str(PORT_DEST)
+                        descrip = "No server listening at " + ip_dest
+                        descrip = descrip + " port " + str(port_dest)
                         evento = mi_log.make_event('error', descrip, '', '')
                         print evento
                         self.wfile.write(evento)
                         break
 
                 elif list_words[0] in meth_not_allowed:
-                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
-                    self.wfile.write(descrip)
+                    descrip = "SIP/2.0 405 Method Not Allowed\r\n"
                     evento = mi_log.make_event('error', descrip, "", "")
+                    descrip = add_proxy_header(descrip, IP, PORT)
                     print evento
+                    descrip = add_proxy_header(descrip, IP, PORT)
                     evento = mi_log.make_event('envio', descrip,
                                                dir_ip, dir_port_s)
+                    self.wfile.write(descrip)
                     print evento
                 else:
                     self.clean_dic()
                     self.register2file()
-                    descrip = "SIP/2.0 400 Bad Request\r\n\r\n"
-                    self.wfile.write(descrip)
+                    descrip = "SIP/2.0 400 Bad Request\r\n"
+
                     evento = mi_log.make_event('error', descrip, "", "")
                     print evento
+                    descrip = add_proxy_header(descrip, IP, PORT)
                     evento = mi_log.make_event('envio', descrip,
                                                dir_ip, dir_port_s)
+                    self.wfile.write(descrip)
                     print evento
 
             else:
@@ -334,6 +358,7 @@ if __name__ == "__main__":
     server_data = sys.argv
     mi_serv = ""
     meth_not_allowed = ['CANCEL', 'OPTIONS']
+    num_rand = random.randint(100000000, 850000000)
 
     if len(server_data) != 2:
         print usage
@@ -360,14 +385,14 @@ if __name__ == "__main__":
     IP = datos_sesion['server_ip']
     PORT = int(datos_sesion['server_puerto'])
     server_name = datos_sesion['server_name']
-    DICC_CLIENT = {}
+    dicc_client = {}
     name_database = datos_sesion['database_path']
     user_dir = ""
     user_port = 0
     dir_dest = ""
     datos_dest = []
     dicc_sdp = {}
-    RTP_INFO = {}
+    rtp_info = {}
     # Creamos servidor SIP y escuchamos
     serv = SocketServer.UDPServer((IP, PORT), SIPRegisterHandler)
     print "Lanzando servidor UDP de SIP...\r\n"
