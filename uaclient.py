@@ -264,6 +264,11 @@ if __name__ == "__main__":
         if datos_audio[0] == 'audio':
             audio_prt = int(datos_audio[1])
 
+        #Dejamos ejecutando cvlc
+        to_exe1 = "cvlc rtp://"
+        to_exe1 += ip_server + ':' + str(rtp_port) + ' 2> /dev/null &'
+        print "Ejecutando cvlc..."
+        os.system(to_exe1)
         #Enviamos ACK
         line2 = 'ACK sip:' + dir_sip + " " + VER
         print "Enviando: " + line2
@@ -272,9 +277,9 @@ if __name__ == "__main__":
 
         #Enviamos audio
         os.system('chmod 755 mp32rtp')
-        to_exe = './mp32rtp -i ' + ip_send
-        to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + audio_file
-        os.system(to_exe)
+        to_exe2 = './mp32rtp -i ' + ip_send
+        to_exe2 += ' -p ' + str(audio_prt) + ' < ' + audio_file + " &"
+        os.system(to_exe2)
         accion = "Enviando audio a " + ip_send + ':'
         accion += str(audio_prt)
         evento = mi_log.make_event(accion, '', '', '')
