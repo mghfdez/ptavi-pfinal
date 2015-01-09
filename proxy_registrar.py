@@ -190,8 +190,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                             line[1] = line[1].split(":")
 
-                            if dic_user.has_key(line[1][1]):
-
+                            if line[1][1] in dic_user:
                                 var_aux = dic_user[str(line[1][1])]
                                 puerto_destino = var_aux[1]
                                 ip_destino = line[1][1].split("@")[1]
@@ -245,7 +244,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         # -----------------------------
                         line[1] = line[1].split(":")
 
-                        if dic_user.has_key(line[1][1]):
+                        if line[1][1] in dic_user:
                             var_aux = dic_user[str(line[1][1])]
                             puerto_destino = var_aux[1]
                             ip_destino = line[1][1].split("@")[1]
