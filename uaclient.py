@@ -112,6 +112,19 @@ class LogConfig:
         self.write_log(frase)
         return frase
 
+
+def check_ip(ip):
+    list_ip = ip.split('.')
+    ok = True
+    try:
+        for numero in list_ip:
+            numero = int(numero)
+            if numero > 255:
+                ok = False
+    except ValueError:
+        return False
+    return ok
+
 if __name__ == "__main__":
     """
     Programa principal
@@ -176,6 +189,11 @@ if __name__ == "__main__":
 
     # Dirección IP del servidor.
     ip_server = datos_sesion['uaserver_ip']
+    print ip_server
+    if check_ip(ip_server):
+        print "La IP es correcta"
+    else:
+        print "IP Erronea"
     # Comprobamos si el puerto introducido es correcto
     try:
         port_server = int(datos_sesion['uaserver_puerto'])
@@ -241,6 +259,7 @@ if __name__ == "__main__":
             if len(datos) == 2:
                 dicc_sdp[datos[0]] = datos[1]
 
+        ip_send = dicc_sdp['o'].split()[1]
         datos_audio = dicc_sdp['m'].split()
         if datos_audio[0] == 'audio':
             audio_prt = int(datos_audio[1])
@@ -253,10 +272,10 @@ if __name__ == "__main__":
 
         #Enviamos audio
         os.system('chmod 755 mp32rtp')
-        to_exe = './mp32rtp -i ' + ip_server
+        to_exe = './mp32rtp -i ' + ip_send
         to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + audio_file
         os.system(to_exe)
-        accion = "Enviando audio a " + ip_server + ':'
+        accion = "Enviando audio a " + ip_send + ':'
         accion += str(audio_prt)
         evento = mi_log.make_event(accion, '', '', '')
         print evento
