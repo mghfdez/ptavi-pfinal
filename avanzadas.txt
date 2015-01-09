@@ -1,2 +1,3 @@
 Consistencia frente a valores erróneos
 Cabecera proxy
+Reestablecer usuarios conectados
