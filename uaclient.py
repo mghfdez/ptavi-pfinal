@@ -49,7 +49,7 @@ class SIPConfigHandler(ContentHandler):
 
     def get_tags(self):
         """
-        Metodo que devuelve el diccionario de elementos
+        metodo que devuelve el diccionario de elementos
         """
         return self.dicc_atrib
 
@@ -140,85 +140,87 @@ if __name__ == "__main__":
     log_path = str(datos_sesion['log_path'])
     mi_log = LogConfig(log_path)
     evento = mi_log.make_event('Starting', '...', '', '')
-    AUDIO_FILE = str(datos_sesion['audio_path'])
+    audio_file = str(datos_sesion['audio_path'])
 
-    if not os.path.exists(AUDIO_FILE):
+    if not os.path.exists(audio_file):
         print 'No existe el fichero de audio'
         print usage
         raise SystemExit
     #evento = mi_log.make_event('error','...','','')
-    METODO = arg_term[2]
-    OPCION = arg_term[3]
-    USER_NAME = datos_sesion['account_username']
-    RECEPTOR = ""
-    EXPIRES = ""
-    DIR_SIP = ""
-    IP_DEST = ""
-    PORT_DEST = 0
-    RTP_PORT = datos_sesion['rtpaudio_puerto']
+    metodo = arg_term[2]
+    opcion = arg_term[3]
+    user_name = datos_sesion['account_username']
+    receptor = ""
+    expires = ""
+    dir_sip = ""
+    ip_dest = ""
+    port_dest = 0
+    rtp_port = datos_sesion['rtpaudio_puerto']
     dicc_sdp = {}
-    if METODO == 'REGISTER':
+    if metodo == 'REGISTER':
         try:
-            EXPIRES = int(OPCION)
-            DIR_SIP = USER_NAME
+            expires = int(opcion)
+            dir_sip = user_name
         except ValueError:
             print usage
             # Imprimir en fichero de log todos los errores??
             raise SytemExit
     else:
-        RECEPTOR = OPCION
-        DIR_SIP = RECEPTOR
+        receptor = opcion
+        dir_sip = receptor
 
     # Comprobamos si el método es conocido
-    if METODO not in method_list:
+    if metodo not in method_list:
         print usage
-        raise SystemExit
+        #raise SystemExit
 
     # Dirección IP del servidor.
-    IP_SERVER = datos_sesion['uaserver_ip']
+    ip_server = datos_sesion['uaserver_ip']
     # Comprobamos si el puerto introducido es correcto
     try:
-        PORT_SERVER = int(datos_sesion['uaserver_puerto'])
+        port_server = int(datos_sesion['uaserver_puerto'])
     except ValueError:
         print usage
         raise SystemExit
 
-    IP_DEST = datos_sesion['regproxy_ip']
-    PORT_DEST = int(datos_sesion['regproxy_puerto'])
+    ip_dest = datos_sesion['regproxy_ip']
+    port_dest = int(datos_sesion['regproxy_puerto'])
 
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    my_socket.connect((IP_DEST, PORT_DEST))
+    my_socket.connect((ip_dest, port_dest))
     who_am_I = my_socket.getsockname()
 
     # Contenido que vamos a enviar
-    LINE = METODO + " sip:" + DIR_SIP
-    if METODO == 'REGISTER':
-        LINE += ":" + str(PORT_SERVER) + " " + VER + '\r\n'
-        LINE += "Expires: " + str(EXPIRES) + '\r\n\r\n'
-    elif METODO == 'INVITE':
-        LINE += " " + VER + "\r\n" + "Content-Type: application/sdp"
-        LINE += "\r\n\r\n" + "v=0" + "\r\n" + "o=" + USER_NAME + " "
-        LINE += IP_SERVER + "\r\n" + "s=KnockKnockKnockPenny"
-        LINE += "\r\n" + "t=0"
-        LINE += "\r\n" + "m=audio " + str(RTP_PORT) + " RTP" + "\r\n\r\n"
-    elif METODO == 'BYE':
-        LINE = LINE + " " + VER + "\r\n\r\n"
+    line = metodo + " sip:" + dir_sip
+    if metodo == 'REGISTER':
+        line += ":" + str(port_server) + " " + VER + '\r\n'
+        line += "expires: " + str(expires) + '\r\n\r\n'
+    elif metodo == 'INVITE':
+        line += " " + VER + "\r\n" + "Content-Type: application/sdp"
+        line += "\r\n\r\n" + "v=0" + "\r\n" + "o=" + user_name + " "
+        line += ip_server + "\r\n" + "s=KnockKnockKnockPenny"
+        line += "\r\n" + "t=0"
+        line += "\r\n" + "m=audio " + str(rtp_port) + " RTP" + "\r\n\r\n"
+    elif metodo == 'BYE':
+        line += " " + VER + "\r\n\r\n"
+    else:
+        line += " " + VER + "\r\n\r\n"
 
     # Comprobamos si hay un servidor escuchando
     #Imprimimos trazas por el terminal y en el fichero de log
     try:
-        print "Enviando: " + LINE
-        evento = mi_log.make_event('envio', LINE, IP_DEST, str(PORT_DEST))
-        my_socket.send(LINE + '\r\n')
+        print "Enviando: " + line
+        evento = mi_log.make_event('envio', line, ip_dest, str(port_dest))
+        my_socket.send(line + '\r\n')
         data = my_socket.recv(1024)
         print "Recibido: " + data
         evento = mi_log.make_event('recepcion', data, '', '')
     except socket.error:
-        descrip = "No server listening at " + IP_DEST
-        descrip = descrip + " port " + str(PORT_DEST)
+        descrip = "No server listening at " + ip_dest
+        descrip = descrip + " port " + str(port_dest)
         evento = mi_log.make_event('error', descrip, '', '')
         print "Error: " + descrip
         evento = mi_log.make_event('Finishing', '...', '', '')
@@ -244,17 +246,17 @@ if __name__ == "__main__":
             audio_prt = int(datos_audio[1])
 
         #Enviamos ACK
-        LINE2 = 'ACK sip:' + DIR_SIP + " " + VER
-        print "Enviando: " + LINE2
-        my_socket.send(LINE2 + '\r\n\r\n')
-        evento = mi_log.make_event('envio', LINE2, IP_SERVER, str(PORT_SERVER))
+        line2 = 'ACK sip:' + dir_sip + " " + VER
+        print "Enviando: " + line2
+        my_socket.send(line2 + '\r\n\r\n')
+        evento = mi_log.make_event('envio', line2, ip_server, str(port_server))
 
         #Enviamos audio
         os.system('chmod 755 mp32rtp')
-        to_exe = './mp32rtp -i ' + IP_SERVER
-        to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + AUDIO_FILE
+        to_exe = './mp32rtp -i ' + ip_server
+        to_exe = to_exe + ' -p ' + str(audio_prt) + ' < ' + audio_file
         os.system(to_exe)
-        accion = "Enviando audio a " + IP_SERVER + ':'
+        accion = "Enviando audio a " + ip_server + ':'
         accion += str(audio_prt)
         evento = mi_log.make_event(accion, '', '', '')
         print evento
