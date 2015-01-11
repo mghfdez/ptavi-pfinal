@@ -137,7 +137,17 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     datos_audio = dicc_sdp['m'].split()
 
                     if datos_audio[0] == 'audio':
-                        rtp_info['rtp_port'] = int(datos_audio[1])
+                        try:
+                            rtp_info['rtp_port'] = int(datos_audio[1])
+                        except ValueError:
+                            resp = "SIP/2.0 400 Bad Request\r\n\r\n"
+                            self.wfile.write(resp)
+                            evento = mi_log.make_event('envio', resp,
+                                                       ip_clnt, str(port_clnt))
+                            print evento
+                            evento = mi_log.make_event('error', resp, "", "")
+                            print evento
+                            break
 
                     ip_send = dicc_sdp['o'].split()[1]
                     if not uaclient.check_ip(ip_send):
@@ -164,7 +174,6 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                     to_exe1 = "cvlc rtp://"
                     to_exe1 += IP + ':' + str(audio_port) + ' 2> /dev/null &'
                     print "Ejecutando cvlc..."
-                    print to_exe1
                     os.system(to_exe1)
 
                     #Enviamos respuesta
