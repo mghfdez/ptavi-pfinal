@@ -108,27 +108,31 @@ def recuperar_users(fich_path):
        un diccionario"""
 
     dicc = {}
-    fich = open(fich_path, 'r')
-    usuarios = fich.readlines()
-    if usuarios != "":
-        usuarios = usuarios[1:]
-    fich.close()
-    try:
-        for usuario in usuarios:
-            if usuario != "":
-                usuario = usuario.split('\t')
-                try:
-                    usuario[2] = int(usuario[2])
-                    usuario[3] = float(usuario[3])
-                    usuario[4] = usuario[4][:-2]
-                    usuario[4] = float(usuario[4])
-                except ValueError:
-                    print "Error al leer fichero de usuarios"
-                    break
-                list_data = [usuario[1], usuario[2], usuario[3], usuario[4]]
-                dicc[usuario[0]] = list_data
-    except IndexError:
-        print "Error al leer fichero de usuarios"
+    if not os.path.exists(fich_path):
+        print 'No existe fichero XML'
+    else:
+        fich = open(fich_path, 'r')
+        usuarios = fich.readlines()
+        if usuarios != "":
+            usuarios = usuarios[1:]
+        fich.close()
+        try:
+            for user in usuarios:
+                if user != "":
+                    user = user.split('\t')
+                    try:
+                        user[2] = int(user[2])
+                        user[3] = float(user[3])
+                        user[4] = user[4][:-2]
+                        user[4] = float(user[4])
+                    except ValueError:
+                        print "Error al leer fichero de usuarios"
+                        break
+                    list_data = [user[1], user[2], user[3], user[4]]
+                    dicc[user[0]] = list_data
+        except IndexError:
+            print "Error al leer fichero de usuarios"
+            dicc = {}
     return dicc
 
 
