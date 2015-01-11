@@ -189,11 +189,6 @@ if __name__ == "__main__":
 
     # Dirección IP del servidor.
     ip_server = datos_sesion['uaserver_ip']
-    print ip_server
-    if check_ip(ip_server):
-        print "La IP es correcta"
-    else:
-        print "IP Erronea"
     # Comprobamos si el puerto introducido es correcto
     try:
         port_server = int(datos_sesion['uaserver_puerto'])
