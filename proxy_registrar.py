@@ -136,6 +136,18 @@ def recuperar_users(fich_path):
     return dicc
 
 
+def log_bf_send(error, ip, port, ip_send, port_send):
+    """
+    Tras añadir cabecera proxy, registra el error ocurrido y su envío
+    """
+    descrip = add_proxy_header(error, ip, port)
+    evento = mi_log.make_event('error', descrip, '', '')
+    print evento
+    evento = mi_log.make_event('envio', descrip, ip_send, port_send)
+    print evento
+    return descrip
+
+
 class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
     Clase Registrar-SIP
@@ -177,6 +189,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         """
         while 1:
             cadena = self.rfile.read()
+            #Leemos linea a linea
             if cadena != "":
                 self.clean_dic()
                 self.register2file()
@@ -196,14 +209,9 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         user_port = int(correo.split(":")[2])
                     except ValueError:
                         #Mando mensaje de error
-                        descrip = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
-                        evento = mi_log.make_event('error', descrip, '', '')
-                        print evento
-                        descrip = add_proxy_header(descrip, IP, PORT)
-                        self.wfile.write(descrip)
-                        evento = mi_log.make_event('envio', descrip,
-                                                   dir_ip, dir_port_s)
-                        print evento
+                        error = "SIP/2.0 400 BAD REQUEST\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
+                        self.wfile.write(resp)
                         break
 
                     reg_time = time.time()
@@ -242,40 +250,25 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         port_dest = dicc_client[dir_dest][1]
                     else:
                         #Envio mensaje de error
-                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
-                        descrip = add_proxy_header(descrip, IP, PORT)
-                        self.wfile.write(descrip)
-                        evento = mi_log.make_event('error', descrip, '', '')
-                        print evento
-                        evento = mi_log.make_event('envio', descrip,
-                                                   dir_ip, dir_port_s)
-                        print evento
+                        error = "SIP/2.0 404 User Not Found\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
+                        self.wfile.write(resp)
                         break
 
                     #Compruebo que la IP es correcta
                     if not uaclient.check_ip(ip_dest):
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     for linea_pet in lista_cadena:
@@ -288,28 +281,17 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     emisor = dicc_sdp['o'].split()[0]
                     ip_emisor = dicc_sdp['o'].split()[1]
                     if not uaclient.check_ip(ip_emisor):
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     #Compruebo que el emisor esta registrado
                     if emisor not in dicc_client.keys():
-                        descrip = "SIP/2.0 404 User Not Found\r\n\r\n"
-                        descrip = add_proxy_header(descrip, IP, PORT)
-                        self.wfile.write(descrip)
-                        evento = mi_log.make_event('error', descrip, '', '')
-                        print evento,
+                        error = "SIP/2.0 404 User Not Found\r\n\r\n"
                         print "Emisor no registrado"
-                        self.wfile.write(evento)
-                        evento = mi_log.make_event('envio', descrip,
-                                                   dir_ip, dir_port_s)
-                        print evento
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
+                        self.wfile.write(resp)
                         break
 
                     #Abro un socket y reenvio el mensaje
@@ -355,26 +337,17 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                     #Compruebo la direccion IP
                     if not uaclient.check_ip(ip_dest):
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
                         print evento
                         break
@@ -408,28 +381,18 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                     #Compruebo direccion IP
                     if not uaclient.check_ip(ip_dest):
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     #Compruebo que el puerto es correcto
                     try:
                         port_dest = int(port_dest)
                     except ValueError:
-                        resp = "SIP/2.0 400 Bad Request\r\n\r\n"
-                        evento = mi_log.make_event('error', resp, "", "")
-                        print evento
-                        resp = add_proxy_header(resp, IP, PORT)
-                        evento = mi_log.make_event('envio', resp,
-                                                   dir_ip, dir_port_s)
+                        error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                        resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
                         self.wfile.write(resp)
-                        print evento
                         break
 
                     #Abro un socket y reenvio el mensaje
@@ -462,29 +425,16 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
 
                 elif list_words[0] in meth_not_allowed:
                     #Si se recibe un metodo conocido pero no válido
-                    descrip = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
-                    evento = mi_log.make_event('error', descrip, "", "")
-                    descrip = add_proxy_header(descrip, IP, PORT)
-                    print evento
-                    descrip = add_proxy_header(descrip, IP, PORT)
-                    evento = mi_log.make_event('envio', descrip,
-                                               dir_ip, dir_port_s)
-                    self.wfile.write(descrip)
-                    print evento
+                    error = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
+                    resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
+                    self.wfile.write(resp)
                 else:
                     #Si ocurre un error de otro tipo
                     self.clean_dic()
                     self.register2file()
-                    descrip = "SIP/2.0 400 Bad Request\r\n\r\n"
-
-                    evento = mi_log.make_event('error', descrip, "", "")
-                    print evento
-                    descrip = add_proxy_header(descrip, IP, PORT)
-                    evento = mi_log.make_event('envio', descrip,
-                                               dir_ip, dir_port_s)
-                    self.wfile.write(descrip)
-                    print evento
-
+                    error = "SIP/2.0 400 Bad Request\r\n\r\n"
+                    resp = log_bf_send(error, IP, PORT, dir_ip, dir_port_s)
+                    self.wfile.write(resp)
             else:
                 break
 
