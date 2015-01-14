@@ -55,7 +55,7 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     self.listaRTP.append(receptor_ipRTP)
                     print "El cliente nos manda " + line
                     trying = "SIP/2.0 100 Trying" + '\r\n\r\n'
-                    ringing = "SIP/2.0 180 Ring" + '\r\n\r\n'
+                    ringing = "SIP/2.0 180 Ringing" + '\r\n\r\n'
                     acept = "SIP/2.0 200 OK" + '\r\n\r\n'
                     sdp = '\r\n' + "Content-Type: application/sdp" + '\r\n\r\n'
                     sdp = sdp + "v=0" + '\r\no=' + username + " " + serverIp
