@@ -284,6 +284,7 @@ if __name__ == "__main__":
         fich = sys.argv[1]
     except IndexError:
         print "Usage: python file.py file.xml"
+
     parser = make_parser()
     myProxy_Registrar = XMLHandler()
     parser.setContentHandler(myProxy_Registrar)
